@@ -175,24 +175,49 @@ function submitTicket() {
   $("text").value = "";
 }
 
+// Cards are created once and updated in place, so dropdown choices and focus survive the 1.5s refresh.
 function renderServers(list, max) {
   $("quota").textContent = `${list.length}/${max} servers`;
-  $("servers").innerHTML = list.length ? list.map(s => {
+  const box = $("servers");
+  const names = new Set(list.map(s => s.name));
+  box.querySelectorAll(".srv").forEach(el => { if (!names.has(el.dataset.name)) el.remove(); });
+  if (!list.length) {
+    box.innerHTML = '<div class="empty" style="grid-column:1/-1">No servers yet. Request one above, or from the Service Desk tab.</div>';
+    return;
+  }
+  box.querySelectorAll(".empty").forEach(el => el.remove());
+  for (const s of list) {
+    let el = [...box.children].find(c => c.dataset && c.dataset.name === s.name);
+    if (!el) {
+      el = document.createElement("div");
+      el.className = "srv"; el.dataset.name = s.name;
+      el.innerHTML = `<h3><span class="dot"></span>${esc(s.name)}</h3><div class="meta"></div><div class="pkgs"></div>
+        <div class="row" style="margin-top:12px">
+          <select><option>nginx</option><option>postgresql</option><option>redis</option><option>node-exporter</option></select>
+          <button class="btn small" onclick="act(this,'install')">Install</button>
+          <button class="btn ghost small" title="Make the Ansible play fail, to open a Case" onclick="act(this,'fail')">Fail it</button>
+          <button class="btn danger small" onclick="act(this,'remove')">Decommission</button>
+        </div>`;
+      box.appendChild(el);
+    }
+    const sig = JSON.stringify([s.state, s.size, s.ip, s.owner, s.packages]);
+    if (el.dataset.sig === sig) continue;   // nothing changed: leave the DOM alone
+    el.dataset.sig = sig;
+    el.querySelector(".dot").className = "dot" + (s.state === "running" ? "" : " off");
+    el.querySelector(".meta").textContent = `${s.size} · ${s.ip || "no ip"} · owner ${s.owner}`;
     const pk = Object.entries(s.packages || {});
-    return `<div class="srv">
-      <h3><span class="dot ${s.state === "running" ? "" : "off"}"></span>${esc(s.name)}</h3>
-      <div class="meta">${esc(s.size)} · ${esc(s.ip || "no ip")} · owner ${esc(s.owner)}</div>
-      <div class="pkgs">${pk.map(([k, v]) => `<span class="chip">${esc(k)} ${esc(v)}</span>`).join("") || '<span class="meta">no software yet</span>'}</div>
-      <div class="row" style="margin-top:12px">
-        <select id="pkg-${esc(s.name)}"><option>nginx</option><option>postgresql</option><option>redis</option><option>node-exporter</option></select>
-        <button class="btn small" onclick="install('${esc(s.name)}', $('pkg-${esc(s.name)}').value)">Install</button>
-        <button class="btn ghost small" title="Make the Ansible play fail, to open a Case" onclick="install('${esc(s.name)}', $('pkg-${esc(s.name)}').value, true)">Fail it</button>
-        <button class="btn danger small" onclick="remove('${esc(s.name)}')">Decommission</button>
-      </div></div>`;
-  }).join("") : '<div class="empty" style="grid-column:1/-1">No servers yet. Request one above, or from the Service Desk tab.</div>';
+    el.querySelector(".pkgs").innerHTML = pk.map(([k, v]) => `<span class="chip">${esc(k)} ${esc(v)}</span>`).join("") || '<span class="meta">no software yet</span>';
+  }
+}
+function act(btn, what) {
+  const card = btn.closest(".srv"), name = card.dataset.name, pkg = card.querySelector("select").value;
+  if (what === "remove") return remove(name);
+  install(name, pkg, what === "fail");
 }
 
+let tSig = "", fSig = "";
 function renderTickets(list) {
+  const sig = JSON.stringify([list, [...open]]); if (sig === tSig) return; tSig = sig;
   $("tickets").innerHTML = list.length ? list.map(t => {
     const cls = t.status.replace(/ /g, "-");
     const detail = open.has(t.id) ? `<tr class="detail"><td colspan="5">
@@ -207,6 +232,7 @@ function renderTickets(list) {
 function toggle(id) { open.has(id) ? open.delete(id) : open.add(id); renderTickets(last.tickets); }
 
 function renderFeed(list) {
+  const sig = JSON.stringify(list); if (sig === fSig) return; fSig = sig;
   $("feed").innerHTML = list.map(e => `<li><time>${hhmm(e.ts)}</time><span class="tag ${esc(e.kind)}">${esc(e.kind)}</span>${esc(e.message)}</li>`).join("") || '<li class="empty">Nothing yet</li>';
 }
 
