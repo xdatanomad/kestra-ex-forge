@@ -27,9 +27,9 @@ make up                  # first run takes a few minutes (images, Ansible runner
 `make reset` clears servers and tickets between demo runs. `make down` stops, `make clean` deletes all data.
 Stop any other demo stack first, including Pulse (ports 8000, 8080 and 5432).
 
-The portal opens with a **How Forge works** section: a wireframe three.js diagram of the architecture, with the two ways to
-request a server (this portal, or a Kestra App) converging on the same flow. Use it to frame the demo, then collapse it.
-three.js r128 (MIT) is vendored in `app/static/vendor/`, so the diagram works offline.
+The portal opens on a **Demo Architecture** tab: an isometric, lines-only three.js diagram with the two ways to
+request a server (this portal, or a Kestra App) converging on the same flow. Dots show traffic; toggles show each door alone.
+Use it to frame the demo, then switch to Fleet. three.js r128 (MIT) is vendored in `app/static/vendor/`, so it works offline.
 
 ## What each piece shows
 
@@ -57,7 +57,7 @@ three.js r128 (MIT) is vendored in `app/static/vendor/`, so the diagram works of
 ## Layout
 
 ```
-app/                 portal + "datacenter" API (FastAPI, one static page + architecture.js diagram)
+app/                 portal + "datacenter" API (FastAPI, one static page + isometric architecture.js diagram)
 node/                the server image (sshd + python3)
 flows/               Kestra flows
 apps/                Kestra Apps

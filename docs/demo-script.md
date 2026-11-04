@@ -3,7 +3,7 @@
 Audience: platform / infrastructure teams. Message: one orchestrator for requests, provisioning, configuration,
 inventory and escalation, with the portal as just another client.
 
-1. **Frame it (2 min).** `make reset`. Open the portal: the "How Forge works" diagram is expanded. Walk the two doors (portal, Kestra App) into one flow, then Ansible, servers, Assets and Cases. Use the toggles to show each door alone, then collapse it.
+1. **Frame it (2 min).** `make reset`. Open the portal: the **Demo Architecture** tab is the landing page. Walk the two doors (portal, Kestra App) into one flow, then Ansible, servers, Assets and Cases. Use the toggles to show each door alone, then switch to the Fleet tab.
 2. **Provision from the portal (2 min).** Request `web-01`. Show the card appear, then Kestra → Executions →
    `provision_server`. Open **Assets**: the server is there with IP, size, owner.
 3. **Ansible (2 min).** Install `nginx` on `web-01`. Chip appears on the card; show the Ansible log in the execution.
