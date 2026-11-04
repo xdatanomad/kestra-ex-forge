@@ -20,4 +20,4 @@ python3 scripts/kapi.py secret forge GEMINI_API_KEY KESTRA_GEMINI_API_KEY || tru
 python3 scripts/kapi.py files forge
 python3 scripts/kapi.py deploy
 python3 scripts/kapi.py apps
-echo "Ready: portal http://localhost:8100  |  Kestra http://localhost:8080"
+echo "Ready: portal http://localhost:8000  |  Kestra http://localhost:8080"

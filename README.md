@@ -21,11 +21,11 @@ make up                  # first run takes a few minutes (images, Ansible runner
 
 | What | URL |
 |---|---|
-| Forge portal (Fleet + Service Desk) | http://localhost:8100 |
+| Forge portal (Fleet + Service Desk) | http://localhost:8000 |
 | Kestra | http://localhost:8080 (login from `.env`) |
 
 `make reset` clears servers and tickets between demo runs. `make down` stops, `make clean` deletes all data.
-Stop any other Kestra stack first (ports 8080 and 5432).
+Stop any other demo stack first, including Pulse (ports 8000, 8080 and 5432).
 
 ## What each piece shows
 

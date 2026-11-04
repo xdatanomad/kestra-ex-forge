@@ -26,7 +26,7 @@ up: .env keys net
 	@scripts/bootstrap.sh
 
 reset:
-	@curl -fsS -X POST localhost:8100/api/reset >/dev/null && echo "forge reset"
+	@curl -fsS -X POST localhost:8000/api/reset >/dev/null && echo "forge reset"
 
 status:
 	@docker ps --filter network=forge-net --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'

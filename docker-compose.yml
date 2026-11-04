@@ -17,7 +17,7 @@ services:
       - ./.keys:/keys:ro
       - forge-data:/data
     ports:
-      - "127.0.0.1:8100:8000"
+      - "127.0.0.1:8000:8000"
 
 volumes:
   forge-data:
