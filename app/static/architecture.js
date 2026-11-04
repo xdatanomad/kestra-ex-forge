@@ -1,170 +1,190 @@
-/* Forge architecture diagram: isometric, lines only (plus tiny dots for the traffic).
-   Two doors (the portal, a Kestra App) lead to the same Kestra flow; Kestra then drives Ansible, the servers,
-   the Assets inventory and Cases. Layout is written in screen units (H right, W down); P() maps it onto the
-   isometric ground plane, so the board reads like a flat 2D diagram with isometric slabs standing on it. */
+/* Forge diagrams: flat 2D SVG, drawn from a few primitives so every connector starts and ends on a box edge.
+   1) the architecture (with animated dots and the "both doors / portal / app" highlight)
+   2) two flowcharts: what Kestra runs for a service-desk request, and for provisioning + installing software. */
 (function () {
-  const el = document.getElementById("arch");
-  if (!el) return;
-  if (!window.THREE) { el.innerHTML = '<p class="meta" style="padding:20px">The diagram needs static/vendor/three.min.js.</p>'; return; }
-  const T = THREE;
+  const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-  // ---------- palette (follows the page theme) ----------
-  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-  const dark = () => window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches;
-  const palette = () => ({ ink: css("--ink") || "#1b1f2a", mute: css("--mute") || "#6b7280",
-                           brand: dark() ? "#9b8cff" : (css("--brand") || "#5b3df5"), app: dark() ? "#2dd4bf" : "#0d9488" });
+  // ---------- primitives (each returns SVG text) ----------
+  const tag = g => (g ? " t-" + g : "");
+  function text(x, y, t, cls, anchor) { return `<text class="${cls}" x="${x}" y="${y}" text-anchor="${anchor || "middle"}">${esc(t)}</text>`; }
 
-  // ---------- true isometric camera ----------
-  const renderer = new T.WebGLRenderer({ antialias: true, alpha: true });
-  const DPR = Math.min(window.devicePixelRatio || 1, 2);
-  renderer.setPixelRatio(DPR);
-  renderer.domElement.style.display = "block";
-  el.prepend(renderer.domElement);
-  const scene = new T.Scene();
-  const camera = new T.OrthographicCamera(-1, 1, 1, -1, 1, 300);
-  camera.position.set(60, 60, 60); camera.lookAt(0, 0, 0);
-
-  const KX = 0.7071, KY = 0.4082, KH = 0.8165;      // iso foreshortening of x-z (horizontal), x+z (vertical), y
-  const P = (h, w, y) => new T.Vector3((h / KX + w / KY) / 2, y || 0, (w / KY - h / KX) / 2);
-
-  // ---------- materials ----------
-  const mats = [];   // every line/dot material, so theme and mode changes can recolour / dim it
-  function reg(m, role, base, tag) { mats.push({ m, role, base, tag: tag || "" }); return m; }
-  const lineMat = (role, op, tag, dashed) => reg(dashed
-    ? new T.LineDashedMaterial({ color: 0, transparent: true, opacity: op, dashSize: 0.28, gapSize: 0.2 })
-    : new T.LineBasicMaterial({ color: 0, transparent: true, opacity: op }), role, op, tag);
-
-  // ---------- isometric slab: only the 9 visible edges ----------
-  function slab(h, w, dx, dz, ht, y0, role, op, tag) {
-    const c = P(h, w, 0);
-    const C = (sx, sz, top) => [c.x + sx * dx / 2, y0 + (top ? ht : 0), c.z + sz * dz / 2];
-    const seg = [], add = (a, b) => seg.push(...a, ...b);
-    add(C(-1, -1, 1), C(1, -1, 1)); add(C(1, -1, 1), C(1, 1, 1)); add(C(1, 1, 1), C(-1, 1, 1)); add(C(-1, 1, 1), C(-1, -1, 1));
-    add(C(1, 1, 0), C(1, 1, 1)); add(C(1, -1, 0), C(1, -1, 1)); add(C(-1, 1, 0), C(-1, 1, 1));
-    add(C(1, -1, 0), C(1, 1, 0)); add(C(-1, 1, 0), C(1, 1, 0));
-    const g = new T.BufferGeometry(); g.setAttribute("position", new T.Float32BufferAttribute(seg, 3));
-    scene.add(new T.LineSegments(g, lineMat(role, op, tag)));
+  // box: x,y,w,h, t=title, s="line|line", c=colour class, g=highlight tag, n=step number
+  function box(o) {
+    const lines = (o.s || "").split("|").filter(Boolean), lh = 14;
+    const block = 16 + (lines.length ? 5 + lines.length * lh : 0);
+    const y0 = o.y + (o.h - block) / 2 + 13, cx = o.x + o.w / 2;
+    let out = `<g class="n ${o.c || "ink"}${tag(o.g)}"><rect x="${o.x}" y="${o.y}" width="${o.w}" height="${o.h}" rx="10"/>`;
+    out += text(cx, y0, o.t, o.sm ? "tt sm" : "tt");
+    lines.forEach((l, i) => { out += text(cx, y0 + 5 + (i + 1) * lh, l, "ss"); });
+    if (o.n) out += `<g class="badge"><circle cx="${o.x + 4}" cy="${o.y + 4}" r="10"/><text x="${o.x + 4}" y="${o.y + 8}" text-anchor="middle">${o.n}</text></g>`;
+    return out + "</g>";
   }
-
-  // ---------- ground lines (screen coords [h, w]) ----------
-  function line(pairs, role, op, tag, opts) {
-    opts = opts || {};
-    const pts = pairs.map(p => P(p[0], p[1], 0));
-    const l = new T.Line(new T.BufferGeometry().setFromPoints(pts), lineMat(role, op, tag, opts.dashed));
-    if (opts.dashed) l.computeLineDistances();
-    scene.add(l);
-    const a = pairs[pairs.length - 2], b = pairs[pairs.length - 1];
-    const ang = Math.atan2(b[1] - a[1], b[0] - a[0]), s = 0.34, sp = 0.5;
-    const head = [[b[0] - s * Math.cos(ang - sp), b[1] - s * Math.sin(ang - sp)], b, [b[0] - s * Math.cos(ang + sp), b[1] - s * Math.sin(ang + sp)]].map(p => P(p[0], p[1], 0));
-    scene.add(new T.Line(new T.BufferGeometry().setFromPoints(head), lineMat(role, op, tag)));
+  function diamond(o) {   // cx,cy,w,h
+    const p = [[o.cx, o.cy - o.h / 2], [o.cx + o.w / 2, o.cy], [o.cx, o.cy + o.h / 2], [o.cx - o.w / 2, o.cy]];
+    return `<g class="n ${o.c || "ink"}"><polygon points="${p.map(q => q.join(",")).join(" ")}"/>${text(o.cx, o.cy + 5, o.t, "tt sm")}</g>`;
   }
-
-  // ---------- layout ----------
-  const SM = 2.0, TH = 0.5;                                   // small slab footprint and thickness
-  const portal = [-8.6, -2.2], kapp = [-8.6, 2.2], kestra = [-1.2, 0], ansible = [4.3, -3.0], assets = [4.3, 0.3], cases = [4.3, 3.6], servers = [8.6, -0.2];
-
-  slab(portal[0], portal[1], SM, SM, TH, 0, "brand", 0.95, "portal");
-  slab(kapp[0], kapp[1], SM, SM, TH, 0, "app", 0.95, "app");
-  slab(kestra[0], kestra[1], 4.6, 4.6, 0.9, 0, "brand", 0.95);
-  slab(ansible[0], ansible[1], SM, SM, TH, 0, "ink", 0.85);
-  slab(assets[0], assets[1], SM, SM, TH, 0, "ink", 0.85);
-  slab(cases[0], cases[1], SM, SM, TH, 0, "ink", 0.85);
-  [0, 0.85, 1.7].forEach(y => slab(servers[0], servers[1], SM, SM, TH, y, "ink", 0.85));
-
-  // connections (ground)
-  line([[portal[0] + 1.41, portal[1]], [-3.95, -0.32]], "brand", 0.95, "portal");
-  line([[kapp[0] + 1.41, kapp[1]], [-3.95, 0.32]], "app", 0.95, "app");
-  line([[2.05, -0.2], [servers[0] - 1.41, -0.2]], "ink", 0.85);                      // provision
-  line([[1.5, -0.3], [ansible[0] - 1.41 + 0.2, ansible[1] + 0.2]], "ink", 0.85);    // to Ansible
-  line([[ansible[0] + 1.41, ansible[1]], [servers[0] - 0.9, -0.85]], "ink", 0.85);   // Ansible to servers (SSH)
-  line([[1.5, 0.3], [assets[0] - 1.41, assets[1]]], "ink", 0.85);
-  line([[0.6, 0.9], [cases[0] - 1.41, cases[1]]], "ink", 0.85);
-  line([[servers[0], -2.3], [servers[0], -4.6], [portal[0], -4.6], [portal[0], -3.55]], "mute", 0.7, "", { dashed: true });  // fleet state
-
-  // ---------- traffic: plain dots ----------
-  const dotTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const g = c.getContext("2d");
-    g.fillStyle = "#fff"; g.beginPath(); g.arc(32, 32, 28, 0, 7); g.fill(); return new T.CanvasTexture(c); })();
-  const dots = [];
-  function dot(path, role, tag, speed, phase) {
-    const pts = path.map(p => P(p[0], p[1], p[2] || 0));
-    const lens = [0]; for (let i = 1; i < pts.length; i++) lens.push(lens[i - 1] + pts[i].distanceTo(pts[i - 1]));
-    const g = new T.BufferGeometry(); g.setAttribute("position", new T.Float32BufferAttribute([0, 0, 0], 3));
-    const m = reg(new T.PointsMaterial({ map: dotTex, size: 5.5 * DPR, sizeAttenuation: false, transparent: true, alphaTest: 0.2, depthTest: false }), role, 1, tag);
-    const o = new T.Points(g, m); o.renderOrder = 10; o.frustumCulled = false; scene.add(o);
-    dots.push({ o, tag, pts, lens, total: lens[lens.length - 1], speed, phase });
+  // arrow along points [[x,y],...] ending in an open arrowhead; optional label {x,y,t,a}
+  function arrow(pts, o) {
+    o = o || {};
+    const a = pts[pts.length - 2], b = pts[pts.length - 1], ang = Math.atan2(b[1] - a[1], b[0] - a[0]), s = 9;
+    const h = [[b[0] - s * Math.cos(ang - 0.45), b[1] - s * Math.sin(ang - 0.45)], b, [b[0] - s * Math.cos(ang + 0.45), b[1] - s * Math.sin(ang + 0.45)]];
+    const d = "M" + pts.map(p => p.join(",")).join(" L");
+    let out = `<g class="a ${o.c || "ink"}${tag(o.g)}${o.dash ? " dash" : ""}"><path d="${d}"/><path class="hd" d="M${h.map(p => p.map(v => v.toFixed(1)).join(",")).join(" L")}"/>`;
+    if (o.l) out += text(o.l.x, o.l.y, o.l.t, "lab", o.l.a);
+    return out + "</g>";
   }
-  const shared = [[-1.2, 0, 0.9], [2.05, -0.2, 0], [servers[0] - 1.41, -0.2, 0]];
-  [0, 0.5].forEach(p => {
-    dot([[portal[0] + 1.41, portal[1]], [-3.95, -0.32], ...shared], "brand", "portal", 0.07, p);
-    dot([[kapp[0] + 1.41, kapp[1]], [-3.95, 0.32], ...shared], "app", "app", 0.07, p + 0.25);
-  });
-  dot([[-1.2, -0.3, 0.9], [1.5, -0.3], [ansible[0] - 1.21, ansible[1] + 0.2]], "ink", "", 0.12, 0.1);
-  dot([[ansible[0] + 1.41, ansible[1]], [servers[0] - 0.9, -0.85]], "ink", "", 0.18, 0.6);
-  dot([[1.5, 0.3], [assets[0] - 1.41, assets[1]]], "ink", "", 0.14, 0.3);
-  dot([[0.6, 0.9], [cases[0] - 1.41, cases[1]]], "ink", "", 0.14, 0.75);
+  const svg = (w, h, label, body) => `<svg class="dg" viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(label)}">${body}</svg>`;
 
-  // ---------- labels (HTML, projected from the scene) ----------
-  const labels = [];
-  function label(h, w, y, html, cls, tag) {
-    const d = document.createElement("div");
-    d.className = "lbl " + (cls || ""); d.innerHTML = html; el.appendChild(d);
-    labels.push({ d, p: P(h, w, y), tag: tag || "" });
-  }
-  const node = (pos, title, sub, cls, tag, top) => {            // title on the slab, caption just below it
-    label(pos[0], pos[1], top || TH, title, cls, tag);
-    if (sub) label(pos[0], pos[1] + 1.35, 0, sub, "s mute", tag);
-  };
-  node(portal, "This portal", "Fleet + Service Desk", "brand", "portal");
-  node(kapp, "Kestra App", "self-service form", "app", "app");
-  label(kestra[0], kestra[1], 0.9, "Kestra 2.0<small>install_software</small><small>provision_server</small><small>route_request + AI</small>", "brand");
-  node(ansible, "Ansible", "configures over SSH");
-  node(assets, "Assets", "server inventory");
-  node(cases, "Cases", "failures and escalations");
-  label(servers[0], servers[1] + 1.55, 0, "Servers<small>Docker containers</small>", "");
-  label(0, -5.0, 0, "fleet state is read straight from the servers", "s mute");
+  // ======================================================================
+  // 1) Architecture
+  // ======================================================================
+  const archEl = document.getElementById("arch");
+  let mode = "both", archSvg = null;
+  const routes = [];
+  if (archEl) {
+    const B = [];
+    // doors
+    B.push(box({ x: 30, y: 60, w: 200, h: 100, t: "This portal", s: "Fleet + Service Desk", c: "portal", g: "portal" }));
+    B.push(box({ x: 30, y: 300, w: 200, h: 100, t: "Kestra App", s: "self-service forms", c: "app", g: "app" }));
+    // Kestra
+    B.push(`<g class="n kestra"><rect x="330" y="40" width="300" height="450" rx="14"/>${text(480, 64, "Kestra 2.0", "tt kt")}</g>`);
+    B.push(box({ x: 350, y: 80, w: 260, h: 60, t: "route_request", s: "AI plans, runs the steps" }));
+    B.push(box({ x: 350, y: 190, w: 260, h: 60, t: "provision_server", s: "starts a server, registers it" }));
+    B.push(box({ x: 350, y: 300, w: 260, h: 60, t: "install_software", s: "runs an Ansible playbook" }));
+    B.push(box({ x: 350, y: 420, w: 260, h: 60, t: "open_case", s: "raises a Case for a human" }));
+    // targets
+    B.push(box({ x: 730, y: 300, w: 200, h: 56, t: "Ansible", s: "over SSH" }));
+    B.push(box({ x: 730, y: 150, w: 200, h: 120, t: "Servers", s: "Docker containers" }));
+    B.push(box({ x: 730, y: 380, w: 200, h: 50, t: "Assets", s: "server inventory" }));
+    B.push(box({ x: 730, y: 445, w: 200, h: 50, t: "Cases", s: "failures, escalations" }));
+    // door arrows
+    B.push(arrow([[230, 110], [350, 110]], { c: "portal", g: "portal", l: { x: 290, y: 102, t: "Service Desk" } }));
+    B.push(arrow([[230, 140], [280, 140], [280, 205], [350, 205]], { c: "portal", g: "portal", l: { x: 272, y: 178, t: "Fleet buttons", a: "end" } }));
+    B.push(arrow([[130, 300], [130, 235], [350, 235]], { c: "app", g: "app", l: { x: 240, y: 227, t: "app form" } }));
+    B.push(arrow([[230, 330], [350, 330]], { c: "app", g: "app", l: { x: 290, y: 322, t: "app form" } }));
+    // Kestra outputs
+    B.push(arrow([[610, 330], [730, 330]], { l: { x: 670, y: 322, t: "playbook" } }));
+    B.push(arrow([[830, 300], [830, 270]], { l: { x: 842, y: 290, t: "SSH", a: "start" } }));
+    B.push(arrow([[610, 220], [730, 220]], { l: { x: 670, y: 212, t: "start container" } }));
+    B.push(arrow([[630, 405], [730, 405]], { l: { x: 680, y: 397, t: "record" } }));
+    B.push(arrow([[610, 470], [730, 470]], { l: { x: 670, y: 462, t: "on failure" } }));
+    // fleet state read back by the portal
+    B.push(arrow([[930, 210], [965, 210], [965, 26], [130, 26], [130, 58]], { c: "mute", g: "portal", dash: true }));
+    B.push(text(548, 16, "fleet state is read straight from the servers", "lab"));
+    B.push(`<g id="dots"></g>`);
+    archEl.innerHTML = svg(1000, 510, "Forge architecture", B.join(""));
+    archSvg = archEl.querySelector("svg");
 
-  // ---------- modes: both | portal | app ----------
-  let mode = "both", active = true, raf = 0, W = 0, H = 0;
-  const visible = tag => mode === "both" || !tag || tag === mode;
-  function applyMode() {
-    const col = palette();
-    mats.forEach(x => { x.m.color.set(col[x.role]); x.m.opacity = visible(x.tag) ? x.base : 0.12; });
-    labels.forEach(l => { l.d.style.opacity = visible(l.tag) ? 1 : 0.25; });
-  }
-
-  // ---------- sizing ----------
-  function size() {
-    W = el.clientWidth; H = el.clientHeight;
-    if (!W || !H) return;
-    renderer.setSize(W, H);
-    const asp = W / H, hw = Math.max(10.9, 5.5 * asp), hh = hw / asp, cx = -0.1, cy = 0.1;
-    camera.left = cx - hw; camera.right = cx + hw; camera.top = cy + hh; camera.bottom = cy - hh;
-    camera.updateProjectionMatrix();
-  }
-  new ResizeObserver(size).observe(el);
-
-  const tmp = new T.Vector3();
-  function frame(now) {
-    if (!active) return;
-    const t = now / 1000;
-    dots.forEach(d => {
-      d.o.visible = visible(d.tag);
-      const u = ((t * d.speed + d.phase) % 1) * d.total;
-      let i = 1; while (i < d.lens.length - 1 && d.lens[i] < u) i++;
-      const k = (u - d.lens[i - 1]) / (d.lens[i] - d.lens[i - 1]);
-      tmp.lerpVectors(d.pts[i - 1], d.pts[i], Math.min(Math.max(k, 0), 1));
-      const a = d.o.geometry.attributes.position; a.setXYZ(0, tmp.x, tmp.y, tmp.z); a.needsUpdate = true;
+    // traffic dots: [segment polylines], a dot is hidden between segments (it is "inside" Kestra)
+    const P = (g, c, segs, phase) => routes.push({ g, c, segs, phase });
+    const toServer = [[610, 220], [730, 220]];
+    [0, 0.5].forEach(p => {
+      P("portal", "portal", [[[230, 140], [280, 140], [280, 205], [350, 205]], toServer], p);
+      P("portal", "portal", [[[230, 110], [350, 110]]], p + 0.25);
+      P("app", "app", [[[130, 300], [130, 235], [350, 235]], toServer], p + 0.1);
+      P("app", "app", [[[230, 330], [350, 330]], [[610, 330], [730, 330]], [[830, 300], [830, 270]]], p + 0.35);
     });
-    labels.forEach(l => {
-      tmp.copy(l.p).project(camera);
-      l.d.style.transform = `translate(-50%,-50%) translate(${(tmp.x * 0.5 + 0.5) * W}px,${(-tmp.y * 0.5 + 0.5) * H}px)`;
+    P("", "ink", [[[630, 405], [730, 405]]], 0.3);
+    P("", "ink", [[[610, 470], [730, 470]]], 0.7);
+    const layer = archSvg.querySelector("#dots");
+    const SPEED = 150, PAUSE = 0.55, TAIL = 1.4;
+    routes.forEach(r => {
+      r.lens = r.segs.map(s => s.slice(1).reduce((a, p, i) => a + Math.hypot(p[0] - s[i][0], p[1] - s[i][1]), 0));
+      r.cycle = r.lens.reduce((a, l) => a + l / SPEED, 0) + PAUSE * (r.segs.length - 1) + TAIL;
+      layer.insertAdjacentHTML("beforeend", `<circle class="dot ${r.c}" r="5" cx="-20" cy="-20"/>`);
+      r.el = layer.lastElementChild;
     });
-    renderer.render(scene, camera);
+    const at = (seg, d) => { for (let i = 1; i < seg.length; i++) { const l = Math.hypot(seg[i][0] - seg[i - 1][0], seg[i][1] - seg[i - 1][1]); if (d <= l || i === seg.length - 1) { const k = Math.min(d / l, 1); return [seg[i - 1][0] + (seg[i][0] - seg[i - 1][0]) * k, seg[i - 1][1] + (seg[i][1] - seg[i - 1][1]) * k]; } d -= l; } };
+    let active = true, raf = 0;
+    const frame = now => {
+      if (!active) return;
+      routes.forEach(r => {
+        let t = ((now / 1000) + r.phase * r.cycle) % r.cycle, pos = null;
+        for (let i = 0; i < r.segs.length; i++) {
+          const dur = r.lens[i] / SPEED;
+          if (t < dur) { pos = at(r.segs[i], t * SPEED); break; }
+          t -= dur;
+          if (t < PAUSE) break;
+          t -= PAUSE;
+        }
+        const show = pos && (mode === "both" || !r.g || r.g === mode);
+        r.el.style.display = show ? "" : "none";
+        if (show) { r.el.setAttribute("cx", pos[0].toFixed(1)); r.el.setAttribute("cy", pos[1].toFixed(1)); }
+      });
+      raf = requestAnimationFrame(frame);
+    };
     raf = requestAnimationFrame(frame);
+    window.forgeArch = {
+      setActive(on) { active = on; cancelAnimationFrame(raf); if (on) raf = requestAnimationFrame(frame); },
+      setMode(m) {
+        mode = m; archSvg.classList.remove("m-portal", "m-app"); if (m !== "both") archSvg.classList.add("m-" + m);
+        routes.forEach(r => { if (!(m === "both" || !r.g || r.g === m)) r.el.style.display = "none"; });   // don't wait for the next frame
+      }
+    };
   }
-  function setActive(on) { active = on; cancelAnimationFrame(raf); if (on) { size(); raf = requestAnimationFrame(frame); } }
-  if (window.matchMedia) matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyMode);
 
-  applyMode(); size(); raf = requestAnimationFrame(frame);
-  window.forgeArch = { setActive, setMode: m => { mode = m; applyMode(); } };
+  // ======================================================================
+  // 2) Flowchart: a service-desk request
+  // ======================================================================
+  const desk = document.getElementById("flow-desk");
+  if (desk) {
+    const F = [], y1 = 30, h1 = 76, w1 = 164, xs = [20, 209, 398, 587, 776];
+    const row = [
+      { t: "Submit request", s: "Service Desk tab|starts route_request", c: "portal" },
+      { t: "triage", s: "ticket becomes|In Triage" },
+      { t: "agent", s: "Gemini plans the steps|(optional)" },
+      { t: "plan", s: "check the plan, else|keyword rules" },
+      { t: "record_plan", s: "plan saved on ticket|In Progress" }
+    ];
+    row.forEach((r, i) => { F.push(box({ x: xs[i], y: y1, w: w1, h: h1, t: r.t, s: r.s, c: r.c, n: i + 1 })); if (i) F.push(arrow([[xs[i - 1] + w1, y1 + h1 / 2], [xs[i], y1 + h1 / 2]])); });
+    F.push(arrow([[858, y1 + h1], [858, 160]]));
+    F.push(diamond({ cx: 858, cy: 200, w: 170, h: 80, t: "steps planned?" }));
+    // yes: loop -> three subflows, then resolved
+    F.push(arrow([[773, 200], [724, 200]], { l: { x: 748, y: 192, t: "yes" } }));
+    F.push(box({ x: 524, y: 165, w: 200, h: 70, t: "run_steps", s: "Loop, one step at a time|each step is a Subflow", n: 6 }));
+    F.push(arrow([[624, 235], [624, 262]]));
+    const sub = [["provision_server", 250], ["install_software", 430], ["decommission_server", 610]];
+    F.push(`<g class="a ink"><path d="M${250 + 80},262 L${610 + 80},262"/></g>`);
+    sub.forEach(([t, x]) => { F.push(arrow([[x + 80, 262], [x + 80, 300]])); F.push(box({ x, y: 300, w: 160, h: 56, t, sm: true })); });
+    F.push(arrow([[524, 200], [454, 200]]));
+    F.push(box({ x: 290, y: 165, w: 164, h: 70, t: "resolved", s: "ticket becomes|Resolved", n: 7 }));
+    // no: escalate
+    F.push(arrow([[858, 240], [858, 300]], { l: { x: 870, y: 274, t: "no", a: "start" } }));
+    F.push(box({ x: 790, y: 300, w: 190, h: 76, t: "escalate", s: "open_case creates a Case|ticket: Needs Attention", n: 6 }));
+    F.push(text(20, 400, "If any step fails, the flow's errors handler marks the ticket Needs Attention (install_software also opens a Case).", "lab", "start"));
+    desk.innerHTML = svg(1000, 415, "Service desk request flowchart", F.join(""));
+  }
+
+  // ======================================================================
+  // 3) Flowchart: provision a server, then install software
+  // ======================================================================
+  const prov = document.getElementById("flow-prov");
+  if (prov) {
+    const F = [];
+    // --- row A: provision_server
+    F.push(text(20, 24, "provision_server", "tt h2", "start") + text(190, 24, "creates the server and registers it as an Asset", "lab", "start"));
+    F.push(box({ x: 20, y: 46, w: 170, h: 56, t: "Fleet: Provision", s: "portal button", c: "portal" }));
+    F.push(box({ x: 20, y: 118, w: 170, h: 56, t: "Request a server", s: "Kestra App form", c: "app" }));
+    F.push(box({ x: 260, y: 66, w: 200, h: 90, t: "create", s: "HTTP call to the datacenter|starts a container,|waits for SSH", n: 1 }));
+    F.push(arrow([[190, 74], [225, 74], [225, 96], [260, 96]], { c: "portal" }));
+    F.push(arrow([[190, 146], [225, 146], [225, 126], [260, 126]], { c: "app" }));
+    F.push(box({ x: 520, y: 66, w: 200, h: 90, t: "register", s: "Asset: VM|(ip, size, owner)", n: 2 }));
+    F.push(arrow([[460, 111], [520, 111]]));
+    F.push(box({ x: 780, y: 66, w: 200, h: 90, t: "result", s: "server card on Fleet|Asset in Kestra", c: "kestra" }));
+    F.push(arrow([[720, 111], [780, 111]]));
+    // --- row B: install_software
+    F.push(text(20, 232, "install_software", "tt h2", "start") + text(190, 232, "configures a server with Ansible", "lab", "start"));
+    F.push(box({ x: 20, y: 254, w: 170, h: 56, t: "Fleet: Install", s: "portal button", c: "portal" }));
+    F.push(box({ x: 20, y: 326, w: 170, h: 56, t: "Install software", s: "Kestra App form", c: "app" }));
+    F.push(box({ x: 260, y: 266, w: 200, h: 108, t: "ansible", s: "AnsibleCLI in Docker|SSH key from a secret|runs the playbook", n: 1 }));
+    F.push(arrow([[190, 282], [225, 282], [225, 300], [260, 300]], { c: "portal" }));
+    F.push(arrow([[190, 354], [225, 354], [225, 340], [260, 340]], { c: "app" }));
+    F.push(arrow([[460, 320], [510, 320]]));
+    F.push(diamond({ cx: 575, cy: 320, w: 130, h: 80, t: "play ok?" }));
+    F.push(arrow([[640, 320], [700, 320]], { l: { x: 670, y: 312, t: "yes" } }));
+    F.push(box({ x: 700, y: 266, w: 280, h: 108, t: "register + notify", s: "Asset: software, linked|to the server (lineage)|activity feed updated", n: 2 }));
+    F.push(arrow([[575, 360], [575, 420]], { l: { x: 587, y: 396, t: "no", a: "start" } }));
+    F.push(box({ x: 465, y: 420, w: 220, h: 76, t: "errors: open_case", s: "Subflow creates a Kestra Case|(the Fail it button does this)", n: 2 }));
+    prov.innerHTML = svg(1000, 510, "Provision and install flowchart", F.join(""));
+  }
 })();

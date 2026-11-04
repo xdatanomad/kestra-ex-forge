@@ -8,10 +8,10 @@
   :root {
     --bg:#f4f5f8; --card:#fff; --ink:#1b1f2a; --mute:#6b7280; --line:#e5e7ee;
     --brand:#5b3df5; --brand-ink:#fff; --ok:#16a34a; --warn:#d97706; --bad:#dc2626; --info:#2563eb;
-    --sn:#293e40; --sn-accent:#62d84e;
+    --sn:#293e40; --sn-accent:#62d84e; --portal:#5b3df5; --app:#0d9488;
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#12141b; --card:#1b1e28; --ink:#e8eaf0; --mute:#9096a6; --line:#2a2e3b; }
+    :root { --bg:#12141b; --card:#1b1e28; --ink:#e8eaf0; --mute:#9096a6; --line:#2a2e3b; --portal:#9b8cff; --app:#2dd4bf; }
   }
   * { box-sizing:border-box; }
   body { margin:0; font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--ink); }
@@ -31,12 +31,29 @@
   .how-tabs .hint { margin-left:auto; color:var(--mute); font-size:12.5px; }
   .how-tabs button { border:1px solid var(--line); background:none; color:var(--mute); padding:4px 12px; border-radius:20px; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; }
   .how-tabs button.on { color:var(--ink); border-color:var(--ink); }
-  #arch { position:relative; aspect-ratio:1.95 / 1; min-height:300px; max-height:540px; width:100%; }
-  .lbl { position:absolute; left:0; top:0; pointer-events:none; text-align:center; white-space:nowrap; font-size:12.5px; font-weight:700; line-height:1.25; transition:opacity .25s; }
-  .lbl small { display:block; font-weight:500; font-size:10.5px; color:var(--mute); }
-  .lbl.s { font-size:10.5px; font-weight:600; } .lbl.mute { color:var(--mute); font-weight:500; }
-  .lbl.brand { color:var(--brand); } .lbl.app { color:#0d9488; }
-  @media (prefers-color-scheme: dark) { .lbl.app { color:#2dd4bf; } .lbl.brand { color:#9b8cff; } }
+  #arch { padding:6px 12px 0; }
+  .dg { width:100%; height:auto; display:block; font-family:inherit; }
+  .dg .n rect, .dg .n polygon { fill:none; stroke:currentColor; stroke-width:1.5; }
+  .dg .ink { color:var(--mute); } .dg .portal { color:var(--portal); } .dg .app { color:var(--app); } .dg .kestra { color:var(--brand); } .dg .mute { color:var(--mute); }
+  .dg .tt { font-size:15px; font-weight:700; fill:var(--ink); } .dg .tt.sm { font-size:13px; } .dg .tt.h2 { font-size:14px; }
+  .dg .kestra > .tt, .dg .portal > .tt, .dg .app > .tt { fill:currentColor; }
+  .dg .ss { font-size:11.5px; fill:var(--mute); }
+  .dg .lab { font-size:11px; fill:var(--mute); }
+  .dg .a path { fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
+  .dg .a.dash path { stroke-dasharray:5 5; }
+  .dg .badge circle { fill:var(--card); stroke:var(--mute); stroke-width:1; } .dg .badge text { font-size:11px; font-weight:700; fill:var(--ink); }
+  .dg .dot { fill:currentColor; }
+  .dg .t-portal, .dg .t-app { transition:opacity .25s; }
+  .dg.m-portal .t-app, .dg.m-app .t-portal { opacity:.14; }
+  .flows-title { margin:26px 0 4px; font-size:16px; } .flows-sub { margin:0 0 12px; color:var(--mute); font-size:13px; }
+  details.flow { margin-bottom:14px; padding:0; overflow:hidden; }
+  details.flow summary { cursor:pointer; padding:14px 18px; font-weight:700; list-style:none; display:flex; gap:12px; align-items:baseline; }
+  details.flow summary::-webkit-details-marker { display:none; }
+  details.flow summary::before { content:"▸"; color:var(--mute); transition:transform .15s; }
+  details.flow[open] summary::before { transform:rotate(90deg); }
+  details.flow summary span { font-weight:500; color:var(--mute); font-size:12.5px; }
+  .fl-body { padding:0 18px 16px; border-top:1px solid var(--line); }
+  .fl-body p { color:var(--mute); font-size:13px; margin:12px 0 6px; }
   .how-cap { margin:0; padding:0 18px 16px; color:var(--mute); font-size:13px; min-height:2.6em; }
   .grid { display:grid; grid-template-columns:1fr 340px; gap:20px; align-items:start; }
   @media (max-width:900px) { .grid { grid-template-columns:1fr; } }
@@ -104,14 +121,25 @@
   <section id="arch-view">
     <div class="card how">
       <div class="how-tabs" id="howTabs">
-        <button class="on" data-m="both" onclick="archMode('both')">Both doors</button>
-        <button data-m="portal" onclick="archMode('portal')">Via this portal</button>
-        <button data-m="app" onclick="archMode('app')">Via a Kestra App</button>
+        <button class="on" data-m="both" onclick="archMode('both')">From both doors</button>
+        <button data-m="portal" onclick="archMode('portal')">From this portal</button>
+        <button data-m="app" onclick="archMode('app')">From the app</button>
         <span class="hint">two ways to request a server, one Kestra flow</span>
       </div>
       <div id="arch"></div>
       <p class="how-cap" id="cap"></p>
     </div>
+
+    <h2 class="flows-title">What runs in Kestra</h2>
+    <p class="flows-sub">The same clicks, step by step: purple boxes start in the portal, teal in a Kestra App, grey are Kestra tasks. Numbers follow the order of the tasks in the flow.</p>
+    <details class="card flow" open>
+      <summary>A service desk request <span>flow: route_request</span></summary>
+      <div class="fl-body"><p>You type a request in the Service Desk tab. Kestra reads it, plans the steps, runs the right workflows and updates the ticket as it goes.</p><div id="flow-desk"></div></div>
+    </details>
+    <details class="card flow" open>
+      <summary>Provision a server, then install software <span>flows: provision_server, install_software</span></summary>
+      <div class="fl-body"><p>Both can be started from a portal button or from a Kestra App form. They run the same flow either way.</p><div id="flow-prov"></div></div>
+    </details>
   </section>
 
   <section id="fleet" hidden>
@@ -156,7 +184,6 @@
 </main>
 <div class="toast" id="toast"></div>
 
-<script src="/static/vendor/three.min.js"></script>
 <script src="/static/architecture.js"></script>
 <script>
 const $ = id => document.getElementById(id);
