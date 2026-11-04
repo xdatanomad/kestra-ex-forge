@@ -1,0 +1,151 @@
+id: route_request
+namespace: forge
+
+description: |
+  The service desk brain. A ticket arrives from the portal; an **AI agent** reads the request text and picks
+  which Forge workflows to run (validated against the catalog, with a keyword fallback). Each step runs as a
+  subflow. Requests nobody can map become a **Case** for a human.
+
+labels:
+  team: techops
+  feature: ai
+
+inputs:
+  - id: ticket_id
+    type: STRING
+  - id: requester
+    type: STRING
+    defaults: unknown
+  - id: request_text
+    type: STRING
+
+tasks:
+  - id: triage
+    type: io.kestra.plugin.core.http.Request
+    uri: "http://forge-app:8000/internal/tickets/{{ inputs.ticket_id }}"
+    method: PATCH
+    contentType: application/json
+    body: '{"status": "In Triage", "note": "Kestra picked up the request"}'
+
+  # Optional AI step: any failure is tolerated, the rules below take over.
+  - id: ai
+    type: io.kestra.plugin.core.flow.AllowFailure
+    tasks:
+      - id: agent
+        type: io.kestra.plugin.ai.completion.ChatCompletion
+        timeout: PT30S
+        provider:
+          type: io.kestra.plugin.ai.provider.GoogleGemini
+          apiKey: "{{ secret('GEMINI_API_KEY') }}"
+          modelName: gemini-3.5-flash-lite
+        messages:
+          - type: SYSTEM
+            content: |
+              You are the Forge TechOps dispatcher. Turn the request into an ordered JSON plan using ONLY these workflows:
+              - provision_server: {server_name, size: small|medium|large}
+              - install_software: {server_name, package: nginx|postgresql|redis|node-exporter}
+              - decommission_server: {server_name}
+              Reply with JSON only, no markdown, in this shape:
+              {"reasoning": "one short sentence", "steps": [{"flow": "...", ...inputs}]}
+              Provision a server before installing software on it. Use short lowercase server names with hyphens.
+              If the request cannot be served by these workflows, return {"reasoning": "why", "steps": []}.
+          - type: USER
+            content: "Request from {{ inputs.requester }}: {{ inputs.request_text }}"
+
+  - id: plan
+    type: io.kestra.plugin.scripts.python.Script
+    containerImage: python:3.12-slim
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+    namespaceFiles:
+      enabled: true
+      include:
+        - scripts/**
+    env:
+      REQUEST_TEXT: "{{ inputs.request_text }}"
+      TICKET_ID: "{{ inputs.ticket_id }}"
+      REQUESTER: "{{ inputs.requester }}"
+      AI_ANSWER: "{{ outputs.agent.textOutput ?? '' }}"
+    script: "{{ read('scripts/plan_request.py') }}"
+    outputFiles:
+      - steps.json
+      - patch.json
+
+  - id: record_plan
+    type: io.kestra.plugin.core.http.Request
+    uri: "http://forge-app:8000/internal/tickets/{{ inputs.ticket_id }}"
+    method: PATCH
+    contentType: application/json
+    body: "{{ read(outputs.plan.outputFiles['patch.json']) }}"
+
+  - id: nothing_to_run
+    type: io.kestra.plugin.core.flow.If
+    condition: "{{ fromJson(read(outputs.plan.outputFiles['steps.json'])) | length == 0 }}"
+    then:
+      - id: escalate
+        type: io.kestra.plugin.core.flow.Subflow
+        namespace: forge
+        flowId: open_case
+        wait: true
+        inputs:
+          title: "{{ inputs.ticket_id }}: request needs a human"
+          description: "{{ inputs.request_text }}"
+          severity: MEDIUM
+          execution_id: "{{ execution.id }}"
+          flow_id: route_request
+    else:
+      - id: run_steps
+        type: io.kestra.plugin.core.flow.Loop
+        values: "{{ fromJson(read(outputs.plan.outputFiles['steps.json'])) }}"
+        concurrencyLimit: 1
+        tasks:
+          - id: provision
+            type: io.kestra.plugin.core.flow.If
+            condition: "{{ fromJson(item.value).flow == 'provision_server' }}"
+            then:
+              - id: do_provision
+                type: io.kestra.plugin.core.flow.Subflow
+                namespace: forge
+                flowId: provision_server
+                wait: true
+                inputs:
+                  server_name: "{{ fromJson(item.value).server_name }}"
+                  size: "{{ fromJson(item.value).size ?? 'small' }}"
+                  owner: "{{ fromJson(item.value).owner ?? inputs.requester }}"
+          - id: install
+            type: io.kestra.plugin.core.flow.If
+            condition: "{{ fromJson(item.value).flow == 'install_software' }}"
+            then:
+              - id: do_install
+                type: io.kestra.plugin.core.flow.Subflow
+                namespace: forge
+                flowId: install_software
+                wait: true
+                inputs:
+                  server_name: "{{ fromJson(item.value).server_name }}"
+                  package: "{{ fromJson(item.value).package }}"
+          - id: decommission
+            type: io.kestra.plugin.core.flow.If
+            condition: "{{ fromJson(item.value).flow == 'decommission_server' }}"
+            then:
+              - id: do_decommission
+                type: io.kestra.plugin.core.flow.Subflow
+                namespace: forge
+                flowId: decommission_server
+                wait: true
+                inputs:
+                  server_name: "{{ fromJson(item.value).server_name }}"
+      - id: resolved
+        type: io.kestra.plugin.core.http.Request
+        uri: "http://forge-app:8000/internal/tickets/{{ inputs.ticket_id }}"
+        method: PATCH
+        contentType: application/json
+        body: '{"status": "Resolved", "note": "All requested workflows completed"}'
+
+errors:
+  - id: ticket_failed
+    type: io.kestra.plugin.core.http.Request
+    uri: "http://forge-app:8000/internal/tickets/{{ inputs.ticket_id }}"
+    method: PATCH
+    contentType: application/json
+    body: '{"status": "Needs Attention", "note": "A workflow failed. See the Kestra case."}'

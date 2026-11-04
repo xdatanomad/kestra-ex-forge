@@ -1,0 +1,76 @@
+id: install_software
+namespace: forge
+
+description: |
+  Install software on a server with **Ansible** over SSH. The server asset is the *input* and the
+  installed package becomes a new asset, so lineage (server → software) is tracked automatically.
+  On failure a **Case** is opened for TechOps.
+
+labels:
+  team: techops
+  feature: assets
+
+inputs:
+  - id: server_name
+    type: STRING
+  - id: package
+    type: SELECT
+    values: [nginx, postgresql, redis, node-exporter]
+    defaults: nginx
+  - id: simulate_failure
+    type: BOOL
+    defaults: false
+    description: "Demo switch: make the Ansible play fail so a Case is opened"
+
+tasks:
+  - id: ansible
+    type: io.kestra.plugin.ansible.cli.AnsibleCLI
+    containerImage: cytopia/ansible:latest-tools
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+      networkMode: forge-net
+    namespaceFiles:
+      enabled: true
+      include:
+        - playbooks/**
+    inputFiles:
+      id_ed25519: "{{ secret('FORGE_SSH_KEY') }}"
+    env:
+      ANSIBLE_HOST_KEY_CHECKING: "false"
+    commands:
+      - |
+        chmod 600 id_ed25519 && ansible-playbook -i forge-srv-{{ inputs.server_name }}, -u root --private-key id_ed25519 playbooks/install_software.yml -e package={{ inputs.package }} -e simulate_failure={{ inputs.simulate_failure }}
+
+  - id: register
+    type: io.kestra.plugin.core.log.Log
+    message: "{{ inputs.package }} installed on {{ inputs.server_name }}"
+    assets:
+      inputs:
+        - id: "{{ inputs.server_name }}"
+      outputs:
+        - id: "{{ inputs.server_name }}-{{ inputs.package }}"
+          type: io.kestra.plugin.ee.assets.VM.Ingress
+          metadata:
+            package: "{{ inputs.package }}"
+            installed_on: "{{ inputs.server_name }}"
+            managed_by: ansible
+
+  - id: notify
+    type: io.kestra.plugin.core.http.Request
+    uri: http://forge-app:8000/internal/events
+    method: POST
+    contentType: application/json
+    body: '{"kind": "installed", "message": "{{ inputs.package }} installed on {{ inputs.server_name }} by Ansible"}'
+
+errors:
+  - id: open_case
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: forge
+    flowId: open_case
+    wait: true
+    inputs:
+      title: "Install {{ inputs.package }} failed on {{ inputs.server_name }}"
+      description: "Ansible run failed. Execution {{ execution.id }} in forge/install_software."
+      severity: HIGH
+      execution_id: "{{ execution.id }}"
+      flow_id: install_software

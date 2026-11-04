@@ -1,0 +1,159 @@
+volumes:
+  postgres-data:
+    driver: local
+  kestra-data:
+    driver: local
+
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE}
+    pull_policy: if_not_present
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  # One-shot job: applies pending database migrations before the server starts.
+  kestra-migrate:
+    image: ${KESTRA_IMAGE}
+    pull_policy: if_not_present
+    command: migrate run
+    environment:
+      KESTRA_CONFIGURATION: |
+        datasources:
+          postgres:
+            url: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+            driver-class-name: org.postgresql.Driver
+            username: ${POSTGRES_USER}
+            password: ${POSTGRES_PASSWORD}
+        kestra:
+          repository:
+            type: postgres
+          queue:
+            type: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  kestra:
+    image: ${KESTRA_IMAGE}
+    pull_policy: if_not_present
+    stop_grace_period: 6m
+    # Note that this setup with a root user is intended for development purpose.
+    # Our base image runs without root, but the Docker Compose implementation needs root to access the Docker socket
+    user: "root"
+    command: server standalone
+    volumes:
+      - kestra-data:/app/storage
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./kestra-wd:/tmp/kestra-wd
+    environment:
+      KESTRA_CONFIGURATION: |
+        # Database connection backing the repository, queue, and JDBC secrets.
+        datasources:
+          postgres:
+            url: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+            driver-class-name: org.postgresql.Driver
+            username: ${POSTGRES_USER}
+            password: ${POSTGRES_PASSWORD}
+
+        # UI session/token lifetime.
+        application:
+          micronaut:
+            security:
+              token:
+                generator:
+                  access-token:
+                    expiration: 36000
+                cookie:
+                  cookie-max-age: 10h
+
+        kestra:
+          # Backend services: where flows, executions, and the queue live.
+          repository:
+            type: postgres
+          queue:
+            type: postgres
+          secret:
+            type: jdbc
+            jdbc:
+              secret: ${KESTRA_SECRET_JDBC_SECRET}
+          encryption:
+            secret-key: ${KESTRA_ENCRYPTION_SECRET_KEY}
+
+          # Internal storage for flow outputs, files, and task data.
+          storage:
+            type: local
+            local:
+              base-path: "/app/storage"
+
+          # Local working directory for script/shell task execution.
+          tasks:
+            tmp-dir:
+              path: /tmp/kestra-wd/tmp
+
+          # AI Copilot (flow generation/editing assistance in the UI).
+          ai:
+            type: "gemini"
+            gemini:
+              api-key: "${KESTRA_GEMINI_API_KEY}"
+              model-name: gemini-3.5-flash
+
+          anonymousUsageReport:
+            enabled: false
+
+          # Enterprise Edition license.
+          ee:
+            license:
+              fingerprint: ${KESTRA_EE_LICENSE_FINGERPRINT}
+              id: ${KESTRA_EE_LICENSE_ID}
+              key: ${KESTRA_EE_LICENSE_KEY}
+
+          # Webserver basic auth.
+          server:
+            basic-auth:
+              enabled: true
+              username: ${KESTRA_BASIC_AUTH_USERNAME}
+              password: ${KESTRA_BASIC_AUTH_PASSWORD}
+
+          # Instance owner (break-glass admin account) and default role for new users.
+          security:
+            instance-owner:
+              username: ${KESTRA_BASIC_AUTH_USERNAME}
+              password: ${KESTRA_BASIC_AUTH_PASSWORD}
+              tenant-admin-access:
+                - main
+            # default-role:
+            #   name: default
+            #   description: "Default role"
+            #   permissions:
+            #     FLOW: ["VIEW", "LIST", "CREATE", "UPDATE", "EXECUTE", "DISABLE", "ENABLE"]
+            #     NAMESPACE: ["VIEW", "LIST", "CREATE", "MANAGE_FILES"]
+            #     EXECUTION: ["VIEW", "LIST", "UPDATE", "RESTART", "KILL", "ACCESS_LOGS", "ACCESS_OUTPUTS", "ACCESS_FILES", "FOLLOW"]
+            #     KVSTORE: ["VIEW", "LIST"]
+            #     SECRET: ["VIEW", "LIST"]
+            #   tenant-id: main
+
+          url: "http://localhost:8080/"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_started
+      kestra-migrate:
+        condition: service_completed_successfully
+
+# Shared with the Forge demo services. Created by `make net`.
+networks:
+  default:
+    name: forge-net
+    external: true

@@ -1,0 +1,54 @@
+id: open_case
+namespace: forge
+
+description: |
+  Opens a Kestra **Case** (2.0) for TechOps, linked to the execution that needs attention.
+  Used by the service desk and by failing jobs.
+
+labels:
+  team: techops
+  feature: cases
+
+inputs:
+  - id: title
+    type: STRING
+  - id: description
+    type: STRING
+    defaults: ""
+  - id: severity
+    type: SELECT
+    values: [LOW, MEDIUM, HIGH, CRITICAL]
+    defaults: MEDIUM
+  - id: execution_id
+    type: STRING
+    defaults: ""
+  - id: flow_id
+    type: STRING
+    defaults: ""
+
+tasks:
+  # Cases are created through the Kestra API (the same one the UI uses).
+  - id: create_case
+    type: io.kestra.plugin.core.http.Request
+    uri: http://localhost:8080/api/v1/main/cases
+    method: POST
+    contentType: application/json
+    options:
+      auth:
+        type: BASIC
+        username: "{{ secret('KESTRA_API_USER') }}"
+        password: "{{ secret('KESTRA_API_PASSWORD') }}"
+    body: |
+      {{ {
+        "namespace": "forge",
+        "title": inputs.title,
+        "description": inputs.description ~ (inputs.execution_id is empty ? "" : "\n\nExecution: http://localhost:8080/ui/main/executions/forge/" ~ inputs.flow_id ~ "/" ~ inputs.execution_id),
+        "severity": inputs.severity
+      } | toJson }}
+
+  - id: tell_portal
+    type: io.kestra.plugin.core.http.Request
+    uri: http://forge-app:8000/internal/events
+    method: POST
+    contentType: application/json
+    body: '{"kind": "error", "message": "Case opened: {{ inputs.title }}"}'

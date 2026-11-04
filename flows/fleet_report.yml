@@ -1,0 +1,19 @@
+id: fleet_report
+namespace: forge
+
+description: "Query the asset inventory for every server and the software installed on it."
+
+labels:
+  team: techops
+  feature: assets
+
+tasks:
+  - id: servers
+    type: io.kestra.plugin.kestra.ee.assets.List
+    types:
+      - io.kestra.plugin.ee.assets.VM
+    fetchType: FETCH
+
+  - id: report
+    type: io.kestra.plugin.core.log.Log
+    message: "{{ outputs.servers.assets | length }} server(s) in the inventory"

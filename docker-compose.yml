@@ -1,0 +1,28 @@
+# Forge demo services: the portal/"datacenter" app. Kestra lives in ./kestra and shares "forge-net".
+services:
+  forge-app:
+    build: ./app
+    container_name: forge-app
+    environment:
+      KESTRA_URL: http://kestra:8080
+      KESTRA_USER: ${KESTRA_BASIC_AUTH_USERNAME}
+      KESTRA_PASSWORD: ${KESTRA_BASIC_AUTH_PASSWORD}
+      KESTRA_PUBLIC_URL: http://localhost:8080
+      NODE_IMAGE: forge-node
+      NODE_NETWORK: forge-net
+      SSH_PUBLIC_KEY_FILE: /keys/forge_ed25519.pub
+      DATA_DIR: /data
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock   # lets the "datacenter" start server containers
+      - ./.keys:/keys:ro
+      - forge-data:/data
+    ports:
+      - "127.0.0.1:8100:8000"
+
+volumes:
+  forge-data:
+
+networks:
+  default:
+    name: forge-net
+    external: true

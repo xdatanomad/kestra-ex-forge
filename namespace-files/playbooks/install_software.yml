@@ -1,0 +1,40 @@
+# Installs one package on a Forge server. The "package" is simulated (a config + a version marker)
+# so the demo needs no internet access, but it is a real Ansible run over SSH.
+- name: Install {{ package }}
+  hosts: all
+  gather_facts: false
+  vars:
+    package: nginx
+    simulate_failure: false
+    versions:
+      nginx: "1.24.0"
+      postgresql: "16.3"
+      redis: "7.2.4"
+      node-exporter: "1.8.1"
+  tasks:
+    - name: Check the server is reachable
+      ansible.builtin.ping:
+
+    - name: Package mirror unavailable (demo failure)
+      ansible.builtin.fail:
+        msg: "Package mirror returned HTTP 503 while fetching {{ package }}"
+      when: simulate_failure | bool
+
+    - name: Create config directory
+      ansible.builtin.file:
+        path: /etc/forge
+        state: directory
+        mode: "0755"
+
+    - name: Write {{ package }} configuration
+      ansible.builtin.copy:
+        dest: "/etc/forge/{{ package }}.conf"
+        content: |
+          # managed by Ansible, triggered from Kestra
+          package={{ package }}
+          version={{ versions[package] }}
+
+    - name: Record the installed version
+      ansible.builtin.copy:
+        dest: "/opt/forge/packages/{{ package }}"
+        content: "{{ versions[package] }}"

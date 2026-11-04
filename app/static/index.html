@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forge · TechOps Portal</title>
+<style>
+  :root {
+    --bg:#f4f5f8; --card:#fff; --ink:#1b1f2a; --mute:#6b7280; --line:#e5e7ee;
+    --brand:#5b3df5; --brand-ink:#fff; --ok:#16a34a; --warn:#d97706; --bad:#dc2626; --info:#2563eb;
+    --sn:#293e40; --sn-accent:#62d84e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#12141b; --card:#1b1e28; --ink:#e8eaf0; --mute:#9096a6; --line:#2a2e3b; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--ink); }
+  header { display:flex; align-items:center; gap:24px; padding:14px 28px; background:var(--card); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:5; flex-wrap:wrap; }
+  .logo { font-weight:800; font-size:20px; letter-spacing:-.02em; }
+  .logo span { color:var(--brand); }
+  .logo small { font-weight:500; color:var(--mute); font-size:12px; margin-left:8px; }
+  nav { display:flex; gap:4px; }
+  nav button { border:0; background:none; padding:8px 14px; border-radius:8px; font:inherit; font-weight:600; color:var(--mute); cursor:pointer; }
+  nav button.on { background:var(--brand); color:var(--brand-ink); }
+  .links { margin-left:auto; display:flex; gap:14px; font-size:13px; }
+  .links a { color:var(--brand); text-decoration:none; font-weight:600; }
+  .links a:hover { text-decoration:underline; }
+  main { max-width:1180px; margin:0 auto; padding:24px 28px 60px; }
+  .flow { display:flex; align-items:center; gap:10px; flex-wrap:wrap; color:var(--mute); font-size:12.5px; margin-bottom:20px; }
+  .flow b { color:var(--ink); background:var(--card); border:1px solid var(--line); padding:4px 10px; border-radius:20px; }
+  .flow .k { background:var(--brand); color:#fff; border-color:var(--brand); }
+  .grid { display:grid; grid-template-columns:1fr 340px; gap:20px; align-items:start; }
+  @media (max-width:900px) { .grid { grid-template-columns:1fr; } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; }
+  h2 { margin:0 0 12px; font-size:15px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  input, select, textarea { font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); }
+  textarea { width:100%; min-height:84px; resize:vertical; }
+  .btn { border:0; background:var(--brand); color:var(--brand-ink); padding:8px 14px; border-radius:8px; font:inherit; font-weight:600; cursor:pointer; }
+  .btn.ghost { background:none; color:var(--brand); border:1px solid var(--line); }
+  .btn.small { padding:4px 10px; font-size:12.5px; }
+  .btn.danger { background:none; color:var(--bad); border:1px solid var(--line); }
+  .btn:disabled { opacity:.5; cursor:default; }
+  .servers { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:14px; margin-top:16px; }
+  .srv { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; animation:pop .4s ease; }
+  @keyframes pop { from { transform:scale(.94); opacity:0; } }
+  .srv h3 { margin:0; font-size:15px; display:flex; align-items:center; gap:8px; }
+  .dot { width:9px; height:9px; border-radius:50%; background:var(--ok); box-shadow:0 0 0 3px #16a34a33; }
+  .dot.off { background:var(--mute); box-shadow:none; }
+  .meta { color:var(--mute); font-size:12.5px; margin:6px 0 10px; }
+  .pkgs { display:flex; gap:6px; flex-wrap:wrap; min-height:26px; }
+  .chip { font-size:12px; font-weight:600; padding:2px 9px; border-radius:20px; background:#5b3df522; color:var(--brand); animation:pop .4s ease; }
+  .empty { color:var(--mute); text-align:center; padding:40px 0; }
+  .feed { list-style:none; margin:0; padding:0; max-height:520px; overflow:auto; }
+  .feed li { padding:8px 0; border-bottom:1px solid var(--line); font-size:13px; }
+  .feed time { color:var(--mute); font-size:11.5px; display:block; }
+  .tag { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-right:6px; }
+  .tag.requested { color:var(--info); } .tag.provisioned,.tag.installed { color:var(--ok); }
+  .tag.decommissioned { color:var(--warn); } .tag.error { color:var(--bad); } .tag.ticket { color:var(--brand); }
+  /* service desk (ServiceNow-style) */
+  .sn-bar { background:var(--sn); color:#fff; padding:12px 18px; border-radius:12px 12px 0 0; display:flex; align-items:center; gap:12px; }
+  .sn-bar b { font-size:16px; } .sn-bar i { width:12px; height:12px; border-radius:50%; background:var(--sn-accent); display:inline-block; }
+  .sn-body { background:var(--card); border:1px solid var(--line); border-top:0; border-radius:0 0 12px 12px; padding:18px; }
+  .sn-body .btn { background:var(--sn); }
+  .examples { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 12px; }
+  .examples button { border:1px dashed var(--line); background:none; padding:4px 10px; border-radius:20px; color:var(--mute); cursor:pointer; font:inherit; font-size:12.5px; }
+  .examples button:hover { color:var(--ink); border-color:var(--ink); }
+  table { width:100%; border-collapse:collapse; margin-top:6px; }
+  th { text-align:left; font-size:12px; color:var(--mute); text-transform:uppercase; letter-spacing:.04em; padding:8px; border-bottom:2px solid var(--line); }
+  td { padding:10px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  tr.t { cursor:pointer; } tr.t:hover { background:var(--bg); }
+  .st { font-size:12px; font-weight:700; padding:3px 10px; border-radius:20px; white-space:nowrap; }
+  .st.New { background:#6b728022; color:var(--mute); } .st.In-Triage,.st.In-Progress { background:#2563eb22; color:var(--info); }
+  .st.Resolved { background:#16a34a22; color:var(--ok); } .st.Needs-Attention { background:#dc262622; color:var(--bad); }
+  .detail td { background:var(--bg); }
+  .step { display:inline-block; margin:2px 6px 2px 0; padding:3px 9px; border-radius:6px; background:var(--card); border:1px solid var(--line); font-size:12.5px; }
+  .step code { color:var(--brand); font-weight:700; }
+  .note { color:var(--mute); font-size:12.5px; margin-top:6px; }
+  .toast { position:fixed; bottom:22px; right:22px; background:var(--ink); color:var(--bg); padding:10px 16px; border-radius:10px; opacity:0; transition:.3s; pointer-events:none; }
+  .toast.on { opacity:1; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Forge<span>.</span><small>TechOps self-service</small></div>
+  <nav>
+    <button id="tab-fleet" class="on" onclick="tab('fleet')">Fleet</button>
+    <button id="tab-desk" onclick="tab('desk')">Service Desk</button>
+  </nav>
+  <div class="links" id="links"></div>
+</header>
+
+<main>
+  <div class="flow">
+    <b>This portal</b> → <b class="k">Kestra flow</b> → <b>Ansible over SSH</b> → <b>Servers (Docker)</b> → <b>Assets &amp; Cases</b>
+    <span>· nothing here changes a server directly, Kestra does it</span>
+  </div>
+
+  <section id="fleet">
+    <div class="grid">
+      <div>
+        <div class="card">
+          <h2>Request a server</h2>
+          <div class="row">
+            <input id="name" placeholder="name, e.g. web-01" size="16">
+            <select id="size"><option>small</option><option>medium</option><option>large</option></select>
+            <input id="owner" value="data-platform" size="14">
+            <button class="btn" onclick="provision()">Provision</button>
+            <span class="meta" id="quota"></span>
+          </div>
+        </div>
+        <div class="servers" id="servers"></div>
+      </div>
+      <div class="card">
+        <h2>Activity</h2>
+        <ul class="feed" id="feed"></ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="desk" hidden>
+    <div class="sn-bar"><i></i><b>TechOps Service Desk</b><span style="opacity:.7">· Request something, Kestra's AI agent routes it</span></div>
+    <div class="sn-body">
+      <div class="row" style="margin-bottom:8px">
+        <label>Requested by <input id="requester" value="alex.rivera" size="14"></label>
+      </div>
+      <textarea id="text" placeholder="Describe what you need, in plain words..."></textarea>
+      <div class="examples" id="examples"></div>
+      <button class="btn" onclick="submitTicket()">Submit request</button>
+
+      <h2 style="margin-top:26px">My requests</h2>
+      <table>
+        <thead><tr><th>Number</th><th>Request</th><th>Requester</th><th>State</th><th></th></tr></thead>
+        <tbody id="tickets"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const EXAMPLES = [
+  "I need a new server called web-01 with nginx for the marketing site",
+  "Spin up a medium server named db-01 and install a postgres database and a redis cache",
+  "Please decommission web-01, the campaign is over",
+  "My laptop screen is flickering and I need a new keyboard"
+];
+let kestra = "http://localhost:8080", open = new Set(), last = null;
+
+function tab(t) {
+  for (const s of ["fleet", "desk"]) { $(s).hidden = s !== t; $("tab-" + s).classList.toggle("on", s === t); }
+}
+function toast(m) { const t = $("toast"); t.textContent = m; t.classList.add("on"); setTimeout(() => t.classList.remove("on"), 2600); }
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const hhmm = ts => new Date(ts).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit", second:"2-digit"});
+
+async function api(method, path, body) {
+  const r = await fetch(path, {method, headers: {"Content-Type": "application/json"}, body: body ? JSON.stringify(body) : undefined});
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText);
+  return r.json();
+}
+const ping = (msg, p) => p.then(r => { toast(msg); refresh(); return r; }).catch(e => toast("Error: " + e.message));
+
+function provision() {
+  const name = $("name").value.trim(); if (!name) return toast("Give the server a name");
+  ping("Kestra is provisioning " + name, api("POST", "/api/servers", {name, size: $("size").value, owner: $("owner").value}));
+  $("name").value = "";
+}
+const install = (n, pkg, fail=false) => ping(`Ansible: installing ${pkg} on ${n}`, api("POST", `/api/servers/${n}/software`, {package: pkg, simulate_failure: fail}));
+const remove = n => confirm("Decommission " + n + "?") && ping("Decommissioning " + n, api("DELETE", "/api/servers/" + n));
+function submitTicket() {
+  const text = $("text").value.trim(); if (!text) return toast("Write a request first");
+  ping("Request sent to Kestra", api("POST", "/api/tickets", {requester: $("requester").value, text}));
+  $("text").value = "";
+}
+
+function renderServers(list, max) {
+  $("quota").textContent = `${list.length}/${max} servers`;
+  $("servers").innerHTML = list.length ? list.map(s => {
+    const pk = Object.entries(s.packages || {});
+    return `<div class="srv">
+      <h3><span class="dot ${s.state === "running" ? "" : "off"}"></span>${esc(s.name)}</h3>
+      <div class="meta">${esc(s.size)} · ${esc(s.ip || "no ip")} · owner ${esc(s.owner)}</div>
+      <div class="pkgs">${pk.map(([k, v]) => `<span class="chip">${esc(k)} ${esc(v)}</span>`).join("") || '<span class="meta">no software yet</span>'}</div>
+      <div class="row" style="margin-top:12px">
+        <select id="pkg-${esc(s.name)}"><option>nginx</option><option>postgresql</option><option>redis</option><option>node-exporter</option></select>
+        <button class="btn small" onclick="install('${esc(s.name)}', $('pkg-${esc(s.name)}').value)">Install</button>
+        <button class="btn ghost small" title="Make the Ansible play fail, to open a Case" onclick="install('${esc(s.name)}', $('pkg-${esc(s.name)}').value, true)">Fail it</button>
+        <button class="btn danger small" onclick="remove('${esc(s.name)}')">Decommission</button>
+      </div></div>`;
+  }).join("") : '<div class="empty" style="grid-column:1/-1">No servers yet. Request one above, or from the Service Desk tab.</div>';
+}
+
+function renderTickets(list) {
+  $("tickets").innerHTML = list.length ? list.map(t => {
+    const cls = t.status.replace(/ /g, "-");
+    const detail = open.has(t.id) ? `<tr class="detail"><td colspan="5">
+      ${t.plan.length ? "<b>Plan:</b> " + t.plan.map(p => `<span class="step"><code>${esc(p.flow)}</code> ${esc(p.detail)}</span>`).join("") : ""}
+      ${t.notes.map(n => `<div class="note">${hhmm(n.ts)} · ${esc(n.text)}</div>`).join("")}
+      ${t.exec_id ? `<div class="note"><a href="${kestra}/ui/main/executions/forge/route_request/${t.exec_id}" target="_blank">Open the Kestra execution →</a></div>` : ""}
+    </td></tr>` : "";
+    return `<tr class="t" onclick="toggle('${t.id}')"><td><b>${t.id}</b></td><td>${esc(t.text)}</td><td>${esc(t.requester)}</td>
+      <td><span class="st ${cls}">${esc(t.status)}</span></td><td>${open.has(t.id) ? "▾" : "▸"}</td></tr>${detail}`;
+  }).join("") : '<tr><td colspan="5" class="empty">No requests yet.</td></tr>';
+}
+function toggle(id) { open.has(id) ? open.delete(id) : open.add(id); renderTickets(last.tickets); }
+
+function renderFeed(list) {
+  $("feed").innerHTML = list.map(e => `<li><time>${hhmm(e.ts)}</time><span class="tag ${esc(e.kind)}">${esc(e.kind)}</span>${esc(e.message)}</li>`).join("") || '<li class="empty">Nothing yet</li>';
+}
+
+async function refresh() {
+  try {
+    last = await api("GET", "/api/state");
+    kestra = last.kestra;
+    $("links").innerHTML = ["executions", "assets", "cases", "apps"].map(p => `<a target="_blank" href="${kestra}/ui/main/${p}">${p[0].toUpperCase() + p.slice(1)}</a>`).join("");
+    renderServers(last.servers, last.max); renderTickets(last.tickets); renderFeed(last.events);
+  } catch (e) { /* app restarting */ }
+}
+
+$("examples").innerHTML = EXAMPLES.map((e, i) => `<button onclick="$('text').value=EXAMPLES[${i}]">${esc(e.length > 46 ? e.slice(0, 44) + "…" : e)}</button>`).join("");
+refresh(); setInterval(refresh, 1500);
+</script>
+</body>
+</html>

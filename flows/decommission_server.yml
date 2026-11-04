@@ -1,0 +1,24 @@
+id: decommission_server
+namespace: forge
+
+description: Remove a server and delete its assets from the inventory.
+
+labels:
+  team: techops
+  feature: assets
+
+inputs:
+  - id: server_name
+    type: STRING
+
+tasks:
+  - id: remove
+    type: io.kestra.plugin.core.http.Request
+    uri: http://forge-app:8000/internal/decommission
+    method: POST
+    contentType: application/json
+    body: '{"name": "{{ inputs.server_name }}"}'
+
+  - id: delete_asset
+    type: io.kestra.plugin.kestra.ee.assets.Delete
+    assetId: "{{ inputs.server_name }}"

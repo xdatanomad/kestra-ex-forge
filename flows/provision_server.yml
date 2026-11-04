@@ -1,0 +1,51 @@
+id: provision_server
+namespace: forge
+
+description: |
+  Provision a server. The Forge "datacenter" starts a container that behaves like a VM (sshd + python),
+  and the server is registered as a Kestra **Asset** so the inventory lives next to the automation.
+
+labels:
+  team: techops
+  feature: assets
+
+inputs:
+  - id: server_name
+    type: STRING
+    description: "Lowercase name, e.g. web-01"
+  - id: size
+    type: SELECT
+    values: [small, medium, large]
+    defaults: small
+  - id: owner
+    type: STRING
+    defaults: platform-team
+    description: "Team that will own the server"
+
+tasks:
+  - id: create
+    type: io.kestra.plugin.core.http.Request
+    uri: http://forge-app:8000/internal/provision
+    method: POST
+    contentType: application/json
+    body: '{"name": "{{ inputs.server_name }}", "size": "{{ inputs.size }}", "owner": "{{ inputs.owner }}"}'
+
+  # The Asset: one record per server, written by the flow that created it.
+  - id: register
+    type: io.kestra.plugin.core.log.Log
+    message: "Registered {{ fromJson(outputs.create.body).name }} ({{ fromJson(outputs.create.body).ip }}) in the inventory"
+    assets:
+      outputs:
+        - id: "{{ inputs.server_name }}"
+          type: io.kestra.plugin.ee.assets.VM
+          metadata:
+            ip_address: "{{ fromJson(outputs.create.body).ip }}"
+            size: "{{ inputs.size }}"
+            owner: "{{ inputs.owner }}"
+            os: debian-12
+            status: running
+
+outputs:
+  - id: ip
+    type: STRING
+    value: "{{ fromJson(outputs.create.body).ip }}"

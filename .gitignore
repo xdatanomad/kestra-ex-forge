@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+.keys/
+kestra/kestra-wd/
+__pycache__/
+*.pyc
+.DS_Store
