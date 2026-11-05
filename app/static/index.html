@@ -49,7 +49,27 @@
   .dg .dot { fill:currentColor; }
   .dg .t-portal, .dg .t-app { transition:opacity .25s; }
   .dg.m-portal .t-app, .dg.m-app .t-portal { opacity:.14; }
-  .flows-title { margin:26px 0 4px; font-size:16px; } .flows-sub { margin:0 0 12px; color:var(--mute); font-size:13px; }
+  /* Architecture tab: large type, short copy (the diagrams themselves keep their own monospace styling) */
+  @font-face { font-family:"Geist"; src:url("/static/vendor/geist-latin-wght-normal.woff2") format("woff2"); font-weight:100 900; font-display:swap; }
+  #arch-view { font-family:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; font-feature-settings:"ss01","cv11"; -webkit-font-smoothing:antialiased; }
+  #arch-view h1 { margin:18px 0 8px; font-size:clamp(34px,5vw,52px); line-height:1.05; font-weight:650; letter-spacing:-.035em; }
+  #arch-view .lead { margin:0 0 32px; font-size:clamp(18px,2.2vw,22px); line-height:1.4; color:var(--mute); font-weight:400; }
+  #arch-view h2 { margin:64px 0 8px; font-size:clamp(26px,3.4vw,36px); line-height:1.1; font-weight:650; letter-spacing:-.03em; }
+  #arch-view .lead.sm { margin:0 0 20px; font-size:18px; }
+  #arch-view .how-tabs { padding:20px 24px 0; gap:8px; }
+  #arch-view .how-tabs button { padding:7px 16px; font-size:14px; font-weight:500; letter-spacing:-.005em; }
+  #arch-view .how-cap { list-style:none; margin:0; padding:8px 24px 24px; display:grid; gap:8px; font-size:17px; line-height:1.45; color:var(--ink); }
+  #arch-view .how-cap li { position:relative; padding-left:22px; }
+  #arch-view .how-cap li::before { content:""; position:absolute; left:2px; top:.62em; width:7px; height:7px; border-radius:50%; background:var(--brand); }
+  .legend { display:flex; flex-wrap:wrap; gap:8px 24px; margin:0 0 18px; font-size:15px; color:var(--mute); }
+  .legend i { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:8px; vertical-align:baseline; }
+  #arch-view details.flow { margin-bottom:16px; }
+  #arch-view details.flow summary { padding:22px 24px; font-size:22px; font-weight:600; letter-spacing:-.02em; align-items:center; }
+  #arch-view details.flow summary span { font-size:15px; font-weight:400; letter-spacing:0; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  #arch-view .fl-body { padding:0 24px 24px; }
+  #arch-view .fl-body ul { list-style:none; margin:20px 0 18px; padding:0; display:grid; gap:8px; font-size:17px; line-height:1.45; }
+  #arch-view .fl-body li { position:relative; padding-left:22px; }
+  #arch-view .fl-body li::before { content:""; position:absolute; left:2px; top:.62em; width:7px; height:7px; border-radius:50%; background:var(--brand); }
   details.flow { margin-bottom:14px; padding:0; overflow:hidden; }
   details.flow summary { cursor:pointer; padding:14px 18px; font-weight:700; list-style:none; display:flex; gap:12px; align-items:baseline; }
   details.flow summary::-webkit-details-marker { display:none; }
@@ -114,7 +134,7 @@
 <header>
   <div class="logo">Forge<span>.</span><small>TechOps self-service</small></div>
   <nav>
-    <button id="tab-arch" class="on" onclick="tab('arch')">Demo Architecture</button>
+    <button id="tab-arch" class="on" onclick="tab('arch')">Architecture</button>
     <button id="tab-fleet" onclick="tab('fleet')">Fleet</button>
     <button id="tab-desk" onclick="tab('desk')">Service Desk</button>
   </nav>
@@ -123,26 +143,28 @@
 
 <main>
   <section id="arch-view">
+    <h1>Architecture</h1>
+    <p class="lead">Two ways in. One set of Kestra flows.</p>
     <div class="card how">
       <div class="how-tabs" id="howTabs">
         <button class="on" data-m="both" onclick="archMode('both')">From both doors</button>
         <button data-m="portal" onclick="archMode('portal')">From this portal</button>
         <button data-m="app" onclick="archMode('app')">From the app</button>
-        <span class="hint">two ways to request a server, one Kestra flow</span>
-      </div>
+              </div>
       <div id="arch"></div>
-      <p class="how-cap" id="cap"></p>
+      <ul class="how-cap" id="cap"></ul>
     </div>
 
-    <h2 class="flows-title">What runs in Kestra</h2>
-    <p class="flows-sub">The same clicks, step by step: purple boxes start in the portal, teal in a Kestra App, grey are Kestra tasks. Numbers follow the order of the tasks in the flow.</p>
+    <h2>What runs in Kestra</h2>
+    <p class="lead sm">Each click, step by step.</p>
+    <div class="legend"><span><i style="background:var(--portal)"></i>Starts in the portal</span><span><i style="background:var(--app)"></i>Starts in a Kestra App</span><span><i style="background:var(--mute)"></i>Kestra task</span></div>
     <details class="card flow" open>
-      <summary>A service desk request <span>flow: route_request</span></summary>
-      <div class="fl-body"><p>You type a request in the Service Desk tab. Kestra reads it, plans the steps, runs the right workflows and updates the ticket as it goes.</p><div id="flow-desk"></div></div>
+      <summary>A service desk request <span>route_request</span></summary>
+      <div class="fl-body"><ul><li>Type a request in the Service Desk tab</li><li>Kestra plans the steps, with AI or keyword rules</li><li>Each step runs as a subflow and updates the ticket</li></ul><div id="flow-desk"></div></div>
     </details>
     <details class="card flow" open>
-      <summary>Provision a server, then install software <span>flows: provision_server, install_software</span></summary>
-      <div class="fl-body"><p>Both can be started from a portal button or from a Kestra App form. They run the same flow either way.</p><div id="flow-prov"></div></div>
+      <summary>Provision a server, then install software <span>provision_server, install_software</span></summary>
+      <div class="fl-body"><ul><li>Start from a portal button or a Kestra App form</li><li>Both run the same flows</li><li>A failed install opens a Kestra Case</li></ul><div id="flow-prov"></div></div>
     </details>
   </section>
 
@@ -189,7 +211,7 @@
 <div class="toast" id="toast"></div>
 
 <script src="/static/vendor/elk.bundled.js"></script>
-<script src="/static/architecture.js?v=elk12"></script>
+<script src="/static/architecture.js?v=elk13"></script>
 <script>
 const $ = id => document.getElementById(id);
 const EXAMPLES = [
@@ -201,13 +223,13 @@ const EXAMPLES = [
 let kestra = "http://localhost:8080", open = new Set(), last = null;
 
 const CAPS = {
-  both: "Two doors, one flow. The portal calls Kestra's API; a Kestra App is a form hosted by Kestra itself. Both start provision_server. Then Ansible configures servers, Assets record them, Cases catch failures.",
-  portal: "Via this portal: the Fleet buttons start flows through the API, and the Service Desk hands the request text to route_request, where an AI agent plans the steps.",
-  app: "Via a Kestra App: Kestra serves a self-service form for the flow, with no portal in the middle. Same flow, same servers, same inventory."
+  both: ["Portal and Kestra App start the same flows", "Ansible configures the servers", "Assets record them, Cases catch failures"],
+  portal: ["Fleet buttons call Kestra's API", "Service Desk text goes to route_request", "An AI agent plans the steps"],
+  app: ["Kestra serves the form itself", "No portal in the middle", "Same flow, same servers, same inventory"]
 };
 function archMode(m) {
   window.forgeArch && forgeArch.setMode(m);
-  $("cap").textContent = CAPS[m];
+  $("cap").innerHTML = CAPS[m].map(t => `<li>${t}</li>`).join("");
   document.querySelectorAll("#howTabs button").forEach(b => b.classList.toggle("on", b.dataset.m === m));
 }
 archMode("both");

@@ -27,7 +27,7 @@ make up                  # first run takes a few minutes (images, Ansible runner
 `make reset` clears servers and tickets between demo runs. `make down` stops, `make clean` deletes all data.
 Stop any other demo stack first, including Pulse (ports 8000, 8080 and 5432).
 
-The portal opens on a **Demo Architecture** tab: a flat diagram of the two ways to request a server (this portal, or a
+The portal opens on a **Architecture** tab: a flat diagram of the two ways to request a server (this portal, or a
 Kestra App) converging on the same flows, with dots showing traffic. The "From both doors / this portal / the app" buttons
 highlight each path. Below it, two collapsible flowcharts show what Kestra runs in the background for a service desk request
 (`route_request`) and for provisioning a server and installing software. The diagrams are plain SVG drawn by
