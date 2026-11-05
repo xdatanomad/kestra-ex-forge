@@ -31,15 +31,19 @@
   .how-tabs .hint { margin-left:auto; color:var(--mute); font-size:12.5px; }
   .how-tabs button { border:1px solid var(--line); background:none; color:var(--mute); padding:4px 12px; border-radius:20px; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; }
   .how-tabs button.on { color:var(--ink); border-color:var(--ink); }
-  #arch { padding:6px 12px 0; }
-  .dg { width:100%; height:auto; display:block; font-family:inherit; }
+  #arch { padding:6px 0 0; }
+  #arch, #flow-desk, #flow-prov { overflow-x:auto; }
+  .dg { display:block; margin:0 auto; max-width:none; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace; }
+  .dg .grp rect { fill:none; stroke:currentColor; stroke-width:1.5; }
+  .dg .grp.ink { color:var(--line); } .dg .grp.ink .tt { fill:var(--ink); }
   .dg .n rect, .dg .n polygon { fill:none; stroke:currentColor; stroke-width:1.5; }
   .dg .ink { color:var(--mute); } .dg .portal { color:var(--portal); } .dg .app { color:var(--app); } .dg .kestra { color:var(--brand); } .dg .mute { color:var(--mute); }
-  .dg .tt { font-size:15px; font-weight:700; fill:var(--ink); } .dg .tt.sm { font-size:13px; } .dg .tt.h2 { font-size:14px; }
-  .dg .kestra > .tt, .dg .portal > .tt, .dg .app > .tt { fill:currentColor; }
-  .dg .ss { font-size:11.5px; fill:var(--mute); }
+  .dg .tt { font-size:13px; font-weight:700; fill:var(--ink); }
+  .dg .kestra > .tt, .dg .grp .tt, .dg .portal > .tt, .dg .app > .tt { fill:currentColor; }
+  .dg .ss { font-size:11px; fill:var(--mute); }
   .dg .lab { font-size:11px; fill:var(--mute); }
   .dg .a path { fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
+  .dg .a path.hd { fill:currentColor; stroke-width:1; }
   .dg .a.dash path { stroke-dasharray:5 5; }
   .dg .badge circle { fill:var(--card); stroke:var(--mute); stroke-width:1; } .dg .badge text { font-size:11px; font-weight:700; fill:var(--ink); }
   .dg .dot { fill:currentColor; }
@@ -184,7 +188,8 @@
 </main>
 <div class="toast" id="toast"></div>
 
-<script src="/static/architecture.js"></script>
+<script src="/static/vendor/elk.bundled.js"></script>
+<script src="/static/architecture.js?v=elk12"></script>
 <script>
 const $ = id => document.getElementById(id);
 const EXAMPLES = [
