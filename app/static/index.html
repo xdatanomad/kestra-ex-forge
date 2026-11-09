@@ -104,7 +104,51 @@
   .btn.small { padding:4px 10px; font-size:12.5px; }
   .btn.danger { background:none; color:var(--bad); border:1px solid var(--line); }
   .btn:disabled { opacity:.5; cursor:default; }
-  .servers { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:14px; margin-top:16px; }
+  /* Fleet: request form + server cards */
+  .ico { width:16px; height:16px; flex:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; fill:none; }
+  .form-card { padding:22px 24px; }
+  .fc-head { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; flex-wrap:wrap; margin-bottom:18px; }
+  .fc-head h2 { margin:0 0 4px; font-size:20px; font-weight:650; letter-spacing:-.02em; }
+  .fc-head p { margin:0; color:var(--mute); font-size:14px; }
+  .quota { min-width:150px; font-size:13px; color:var(--mute); text-align:right; }
+  .quota b { color:var(--ink); font-weight:650; }
+  .quota .bar { height:6px; border-radius:6px; background:var(--code-bg); margin-top:7px; overflow:hidden; }
+  .quota .bar i { display:block; height:100%; width:0; border-radius:6px; background:var(--portal); transition:width .4s; }
+  .fields { display:grid; grid-template-columns:minmax(160px,1.4fr) minmax(110px,.8fr) minmax(150px,1.2fr) auto; gap:14px; align-items:end; }
+  .f { display:grid; gap:6px; min-width:0; }
+  .f > span { font-size:12.5px; font-weight:600; color:var(--mute); letter-spacing:.01em; }
+  .inp { display:flex; align-items:center; gap:8px; height:40px; padding:0 12px; border:1px solid var(--line); border-radius:10px; background:var(--bg); color:var(--mute); transition:border-color .15s, box-shadow .15s; }
+  .inp:focus-within { border-color:var(--portal); box-shadow:0 0 0 3px color-mix(in srgb, var(--portal) 22%, transparent); }
+  .inp input { border:0; background:none; padding:0; height:100%; width:100%; min-width:0; outline:0; color:var(--ink); }
+  .f select { height:40px; padding:0 34px 0 12px; border-radius:10px; appearance:none; -webkit-appearance:none; cursor:pointer;
+    background:var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239096a6' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center; }
+  .f select:focus { outline:0; border-color:var(--portal); box-shadow:0 0 0 3px color-mix(in srgb, var(--portal) 22%, transparent); }
+  .btn.icon { display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+  .btn.lg { height:40px; padding:0 18px; border-radius:10px; }
+  @media (max-width:900px) { .fields { grid-template-columns:1fr 1fr; } .fields .btn { grid-column:1/-1; } }
+  .servers { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:16px; margin-top:18px; }
+  .srv { padding:18px !important; }
+  .srv-head { display:flex; align-items:center; gap:12px; }
+  .srv-ico { width:42px; height:42px; border-radius:11px; display:grid; place-items:center; flex:none; color:var(--portal); background:color-mix(in srgb, var(--portal) 16%, transparent); }
+  .srv-ico .ico { width:22px; height:22px; }
+  .srv-title { min-width:0; flex:1; }
+  .srv-title h3 { margin:0; font-size:16px; font-weight:650; letter-spacing:-.01em; overflow:hidden; text-overflow:ellipsis; }
+  .status { display:inline-flex; align-items:center; gap:6px; margin-top:3px; font-size:12px; font-weight:600; color:var(--ok); }
+  .status.off { color:var(--mute); } .status.off .dot { background:var(--mute); }
+  .status .dot { width:7px; height:7px; box-shadow:0 0 0 3px color-mix(in srgb, var(--ok) 25%, transparent); }
+  .status.off .dot { box-shadow:none; }
+  .facts { display:grid; gap:8px; margin:16px 0 14px; padding:12px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); font-size:13px; }
+  .facts div { display:flex; align-items:center; gap:10px; color:var(--mute); }
+  .facts b { color:var(--ink); font-weight:500; margin-left:auto; text-align:right; }
+  .pk-label { font-size:12px; font-weight:600; color:var(--mute); margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+  .actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:14px; }
+  .actions .pick { display:flex; flex:1 1 100%; gap:8px; }
+  .actions .pick select { flex:1; height:34px; padding:0 30px 0 10px; border-radius:8px; appearance:none; -webkit-appearance:none; cursor:pointer;
+    background:var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239096a6' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center; }
+  .actions .btn { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+  .actions .btn.small { padding:6px 12px; }
+  .actions .btn.ghost, .actions .btn.danger { flex:1 1 auto; justify-content:center; padding:6px 10px; }
+  .srv { display:flex; flex-direction:column; } .srv .actions { margin-top:auto; padding-top:14px; }
   .srv { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; animation:pop .4s ease; }
   @keyframes pop { from { transform:scale(.94); opacity:0; } }
   .srv h3 { margin:0; font-size:15px; display:flex; align-items:center; gap:8px; }
@@ -112,7 +156,9 @@
   .dot.off { background:var(--mute); box-shadow:none; }
   .meta { color:var(--mute); font-size:12.5px; margin:6px 0 10px; }
   .pkgs { display:flex; gap:6px; flex-wrap:wrap; min-height:26px; }
-  .chip { font-size:12px; font-weight:600; padding:2px 9px; border-radius:20px; background:#5b3df522; color:var(--brand); animation:pop .4s ease; }
+  .chip { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; padding:3px 10px 3px 8px; border-radius:20px; background:color-mix(in srgb, var(--portal) 16%, transparent); color:var(--portal); animation:pop .4s ease; }
+  .chip .ico { width:13px; height:13px; }
+  .chip em { font-style:normal; font-weight:500; opacity:.75; }
   .empty { color:var(--mute); text-align:center; padding:40px 0; }
   .feed { list-style:none; margin:0; padding:0 8px 0 0; max-height:560px; overflow:auto; }
   .feed li { padding:10px 0; line-height:1.7; border-bottom:1px solid var(--line); font-size:13px; }
@@ -187,14 +233,16 @@
   <section id="fleet" hidden>
     <div class="grid">
       <div>
-        <div class="card">
-          <h2>Request a server</h2>
-          <div class="row">
-            <input id="name" placeholder="name, e.g. web-01" size="16">
-            <select id="size"><option>small</option><option>medium</option><option>large</option></select>
-            <input id="owner" value="data-platform" size="14">
-            <button class="btn" onclick="provision()">Provision</button>
-            <span class="meta" id="quota"></span>
+        <div class="card form-card">
+          <div class="fc-head">
+            <div><h2>Request a server</h2><p>Kestra starts a container and registers it as an Asset.</p></div>
+            <div class="quota"><span id="quota"></span><div class="bar"><i id="quotabar"></i></div></div>
+          </div>
+          <div class="fields">
+            <label class="f"><span>Name</span><div class="inp"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="3" width="20" height="8" rx="2"/><rect x="2" y="13" width="20" height="8" rx="2"/><path d="M6 7h.01M6 17h.01"/></svg><input id="name" placeholder="web-01" autocomplete="off" onkeydown="if(event.key==='Enter')provision()"></div></label>
+            <label class="f"><span>Size</span><select id="size"><option>small</option><option>medium</option><option>large</option></select></label>
+            <label class="f"><span>Owner</span><div class="inp"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><input id="owner" value="data-platform" autocomplete="off"></div></label>
+            <button class="btn lg icon" onclick="provision()"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Provision</button>
           </div>
         </div>
         <div class="servers" id="servers"></div>
@@ -281,9 +329,27 @@ function submitTicket() {
   $("text").value = "";
 }
 
+const IC = {
+  server: '<rect x="2" y="3" width="20" height="8" rx="2"/><rect x="2" y="13" width="20" height="8" rx="2"/><path d="M6 7h.01M6 17h.01"/>',
+  cpu: '<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/>',
+  globe: '<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+  user: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  database: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5M3 12a9 3 0 0 0 18 0"/>',
+  pkg: '<path d="M16.5 9.4 7.5 4.21M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05M12 22.08V12"/>',
+  layers: '<path d="m12 2 10 5-10 5L2 7zM2 17l10 5 10-5M2 12l10 5 10-5"/>',
+  activity: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>',
+  alert: '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"/>',
+  trash: '<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>'
+};
+const ico = n => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${IC[n]}</svg>`;
+const PKG_ICON = { nginx: "globe", postgresql: "database", redis: "layers", "node-exporter": "activity" };
+document.querySelectorAll("[data-ico]").forEach(el => { el.innerHTML = ico(el.dataset.ico); });
+
 // Cards are created once and updated in place, so dropdown choices and focus survive the 1.5s refresh.
 function renderServers(list, max) {
-  $("quota").textContent = `${list.length}/${max} servers`;
+  $("quota").innerHTML = `<b>${list.length}</b> of ${max} servers`; $("quotabar").style.width = Math.min(100, list.length / max * 100) + "%";
   const box = $("servers");
   const names = new Set(list.map(s => s.name));
   box.querySelectorAll(".srv").forEach(el => { if (!names.has(el.dataset.name)) el.remove(); });
@@ -297,22 +363,35 @@ function renderServers(list, max) {
     if (!el) {
       el = document.createElement("div");
       el.className = "srv"; el.dataset.name = s.name;
-      el.innerHTML = `<h3><span class="dot"></span>${esc(s.name)}</h3><div class="meta"></div><div class="pkgs"></div>
-        <div class="row" style="margin-top:12px">
-          <select><option>nginx</option><option>postgresql</option><option>redis</option><option>node-exporter</option></select>
-          <button class="btn small" onclick="act(this,'install')">Install</button>
-          <button class="btn ghost small" title="Make the Ansible play fail, to open a Case" onclick="act(this,'fail')">Fail it</button>
-          <button class="btn danger small" onclick="act(this,'remove')">Decommission</button>
+      el.innerHTML = `<div class="srv-head"><div class="srv-ico">${ico("server")}</div>
+          <div class="srv-title"><h3>${esc(s.name)}</h3><span class="status"><span class="dot"></span><span class="st-text"></span></span></div></div>
+        <div class="facts">
+          <div>${ico("cpu")}Size<b class="f-size"></b></div>
+          <div>${ico("globe")}IP address<b class="f-ip"></b></div>
+          <div>${ico("user")}Owner<b class="f-owner"></b></div>
+        </div>
+        <div class="pk-label">${ico("pkg")}Software</div><div class="pkgs"></div>
+        <div class="actions">
+          <div class="pick">
+            <select><option>nginx</option><option>postgresql</option><option>redis</option><option>node-exporter</option></select>
+            <button class="btn small" onclick="act(this,'install')">${ico("download")}Install</button>
+          </div>
+          <button class="btn ghost small" title="Make the Ansible play fail, to open a Case" onclick="act(this,'fail')">${ico("alert")}Fail it</button>
+          <button class="btn danger small" onclick="act(this,'remove')">${ico("trash")}Decommission</button>
         </div>`;
       box.appendChild(el);
     }
     const sig = JSON.stringify([s.state, s.size, s.ip, s.owner, s.packages]);
     if (el.dataset.sig === sig) continue;   // nothing changed: leave the DOM alone
     el.dataset.sig = sig;
-    el.querySelector(".dot").className = "dot" + (s.state === "running" ? "" : " off");
-    el.querySelector(".meta").textContent = `${s.size} · ${s.ip || "no ip"} · owner ${s.owner}`;
+    const up = s.state === "running";
+    el.querySelector(".status").className = "status" + (up ? "" : " off");
+    el.querySelector(".st-text").textContent = up ? "Running" : s.state;
+    el.querySelector(".f-size").textContent = s.size;
+    el.querySelector(".f-ip").innerHTML = s.ip ? `<span class="code">${esc(s.ip)}</span>` : "none";
+    el.querySelector(".f-owner").textContent = s.owner;
     const pk = Object.entries(s.packages || {});
-    el.querySelector(".pkgs").innerHTML = pk.map(([k, v]) => `<span class="chip">${esc(k)} ${esc(v)}</span>`).join("") || '<span class="meta">no software yet</span>';
+    el.querySelector(".pkgs").innerHTML = pk.map(([k, v]) => `<span class="chip">${ico(PKG_ICON[k] || "pkg")}${esc(k)} <em>${esc(v)}</em></span>`).join("") || '<span class="meta" style="margin:0">None installed yet</span>';
   }
 }
 function act(btn, what) {
