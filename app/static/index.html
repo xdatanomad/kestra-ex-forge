@@ -45,23 +45,34 @@
   .how-tabs button { border:1px solid var(--line); background:none; color:var(--mute); padding:4px 12px; border-radius:20px; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; }
   .how-tabs button.on { color:var(--ink); border-color:var(--ink); }
   #arch { padding:6px 0 0; }
-  #arch, #flow-desk, #flow-prov { overflow-x:auto; }
-  .dg { display:block; margin:0 auto; max-width:none; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace; }
-  .dg .grp rect { fill:none; stroke:currentColor; stroke-width:1.5; }
-  .dg .grp.ink { color:var(--line); } .dg .grp.ink .tt { fill:var(--ink); }
-  .dg .n rect, .dg .n polygon { fill:none; stroke:currentColor; stroke-width:1.5; }
-  .dg .ink { color:var(--mute); } .dg .portal { color:var(--portal); } .dg .app { color:var(--app); } .dg .kestra { color:var(--brand); } .dg .mute { color:var(--mute); }
-  .dg .tt { font-size:13px; font-weight:700; fill:var(--ink); }
-  .dg .kestra > .tt, .dg .grp .tt, .dg .portal > .tt, .dg .app > .tt { fill:currentColor; }
-  .dg .ss { font-size:11px; fill:var(--mute); }
-  .dg .lab { font-size:11px; fill:var(--mute); }
-  .dg .a path { fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
-  .dg .a path.hd { fill:currentColor; stroke-width:1; }
-  .dg .a.dash path { stroke-dasharray:5 5; }
-  .dg .badge circle { fill:var(--card); stroke:var(--mute); stroke-width:1; } .dg .badge text { font-size:11px; font-weight:700; fill:var(--ink); }
-  .dg .dot { fill:currentColor; }
-  .dg .t-portal, .dg .t-app { transition:opacity .25s; }
-  .dg.m-portal .t-app, .dg.m-app .t-portal { opacity:.14; }
+  /* Diagram sheets: Kestra house style (paper, ink outlines, purple = task, blue = connection, mono type). Always light, like an image. */
+  @font-face { font-family:"Geist Mono"; src:url("/static/vendor/geist-mono-latin-wght-normal.woff2") format("woff2"); font-weight:100 900; font-display:swap; }
+  .sheet { --s-bg:#F6F5F1; --s-surface:#FFFFFF; --s-ink:#1B1729; --s-muted:#666275; --s-line:#DEDAD2; --s-line-strong:#BFBACB; --s-accent:#7A2EF0; --s-accent-strong:#5B17C9; --s-accent-soft:#EFE7FD; --s-conn:#2F6BD8; --s-ok:#1B8A5A;
+    --s-font:"Geist Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    margin:0 16px 16px; padding:6px; overflow-x:auto; border:1px solid var(--s-line); border-radius:18px; background:var(--s-bg);
+    background-image:radial-gradient(var(--s-line-strong) 1px,transparent 1.2px); background-size:22px 22px; background-position:11px 11px; color-scheme:light; }
+  .fl-body .sheet { margin:0; }
+  svg.sh { display:block; width:100%; min-width:860px; height:auto; font-family:var(--s-font); }
+  svg.sh .t-sub { font:400 14px var(--s-font); fill:var(--s-muted); }
+  svg.sh .t-zone, svg.sh .t-card { font:700 13px var(--s-font); fill:var(--s-ink); letter-spacing:.1em; text-transform:uppercase; }
+  svg.sh .t-pill { font:600 11px var(--s-font); letter-spacing:.08em; text-transform:uppercase; fill:var(--s-conn); }
+  svg.sh .t-pill2 { font:400 11.5px var(--s-font); fill:var(--s-muted); }
+  svg.sh .t-badge { font:700 14px var(--s-font); fill:#fff; text-anchor:middle; }
+  svg.sh .t-leg { font:500 12.5px var(--s-font); fill:var(--s-muted); }
+  svg.sh .zone { fill:#F3EEFD; stroke:#B9A4EE; stroke-width:1.5; stroke-dasharray:5 5; }
+  svg.sh .zone.cust { fill:#ECF2FB; stroke:#9DB9EC; } svg.sh .zone.neutral { fill:#F1EFE9; stroke:var(--s-line-strong); }
+  svg.sh .shcard { fill:var(--s-surface); stroke:var(--s-line-strong); stroke-width:1.5; } svg.sh .shcard.focus { fill:var(--s-accent-soft); stroke:var(--s-accent); }
+  svg.sh .pill { fill:#fff; stroke-width:1.5; }
+  svg.sh .badge { fill:var(--s-accent); stroke:#fff; stroke-width:3; }
+  svg.sh .edge { fill:none; stroke-width:2.4; stroke-linecap:round; }
+  svg.sh .edge.task { stroke:var(--s-accent); } svg.sh .edge.conn { stroke:var(--s-conn); } svg.sh .edge.ink { stroke:var(--s-ink); stroke-width:1.8; }
+  svg.sh .edge.dash { stroke-dasharray:6 6; }
+  /* icon symbols are rendered through <use>, which ignores scoped selectors: keep these unscoped, literal colors */
+  .ic-body { fill:#fff; stroke:#1B1729; stroke-width:2.2; stroke-linejoin:round; } .ic-line { fill:none; stroke:#1B1729; stroke-width:2.2; stroke-linecap:round; }
+  .ic-led { fill:#1B8A5A; } .ic-led2 { fill:#7A2EF0; } .kmark { fill:#7A2EF0; }
+  svg.sh .pulse { fill:var(--s-accent); stroke:#fff; stroke-width:2; } svg.sh .pulse.conn { fill:var(--s-conn); }
+  svg.sh .cg, svg.sh .eg, svg.sh .pl { transition:opacity .25s; }
+  svg.sh.m-portal .t-app, svg.sh.m-app .t-portal { opacity:.16; }
   /* Architecture tab: large type, short copy (the diagrams themselves keep their own monospace styling) */
   @font-face { font-family:"Geist"; src:url("/static/vendor/geist-latin-wght-normal.woff2") format("woff2"); font-weight:100 900; font-display:swap; }
   #arch-view { font-family:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; font-feature-settings:"ss01","cv11"; -webkit-font-smoothing:antialiased; }
@@ -193,7 +204,7 @@
 <header><div class="wrap">
   <div class="logo">Forge<span>.</span><small>TechOps self-service</small></div>
   <nav>
-    <button id="tab-arch" class="on" onclick="tab('arch')">Architecture</button>
+    <button id="tab-arch" class="on" onclick="tab('arch')">How It Works</button>
     <button id="tab-fleet" onclick="tab('fleet')">Fleet</button>
     <button id="tab-desk" onclick="tab('desk')">Service Desk</button>
   </nav>
@@ -205,7 +216,7 @@
 
 <main>
   <section id="arch-view">
-    <h1>Architecture</h1>
+    <h1>How It Works</h1>
     <p class="lead">Two ways in. One set of Kestra flows.</p>
     <div class="card how">
       <div class="how-tabs" id="howTabs">
@@ -219,7 +230,6 @@
 
     <h2>What runs in Kestra</h2>
     <p class="lead sm">Each click, step by step.</p>
-    <div class="legend"><span><i style="background:var(--portal)"></i>Starts in the portal</span><span><i style="background:var(--app)"></i>Starts in a Kestra App</span><span><i style="background:var(--mute)"></i>Kestra task</span></div>
     <details class="card flow" open>
       <summary>A service desk request <span>route_request</span></summary>
       <div class="fl-body"><ul><li>Type a request in the Service Desk tab</li><li>Kestra plans the steps, with AI or keyword rules</li><li>Each step runs as a subflow and updates the ticket</li></ul><div id="flow-desk"></div></div>
@@ -274,8 +284,8 @@
 </main>
 <div class="toast" id="toast"></div>
 
-<script src="/static/vendor/elk.bundled.js"></script>
-<script src="/static/architecture.js?v=elk13"></script>
+<script src="/static/sheet.js?v=hw4"></script>
+<script src="/static/architecture.js?v=hw4"></script>
 <script>
 const $ = id => document.getElementById(id);
 const EXAMPLES = [
